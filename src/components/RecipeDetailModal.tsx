@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { X, Clock, Users, Edit, Delete, Check } from 'lucide-react';
 import { Recipe } from '../types/Recipe';
@@ -29,6 +28,7 @@ const RecipeDetailModal = ({ recipe, isOpen, onClose, onEdit, onDelete }: Recipe
 
   const handleDelete = () => {
     onDelete(recipe.id);
+    setShowDeleteConfirm(false);
     onClose();
   };
 
@@ -64,7 +64,7 @@ const RecipeDetailModal = ({ recipe, isOpen, onClose, onEdit, onDelete }: Recipe
           {/* Action Buttons */}
           <div className="absolute top-4 left-4 flex gap-2">
             <button
-              onClick={() => {/* TODO: Implement edit */}}
+              onClick={() => onEdit(recipe)}
               className="bg-white/90 backdrop-blur-sm rounded-full p-2 hover:bg-white transition-colors"
             >
               <Edit className="w-4 h-4 text-amber-700" />

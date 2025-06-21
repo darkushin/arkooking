@@ -5,6 +5,7 @@ import { Input } from '@/components/ui/input';
 import RecipeCard from '../components/RecipeCard';
 import RecipeDetailModal from '../components/RecipeDetailModal';
 import AddRecipeModal from '../components/AddRecipeModal';
+import EditRecipeModal from '../components/EditRecipeModal';
 import { Recipe } from '../types/Recipe';
 import { useAuth } from '../hooks/useAuth';
 import { useRecipes } from '../hooks/useRecipes';
@@ -20,6 +21,7 @@ const Index = () => {
   const [selectedRecipe, setSelectedRecipe] = useState<Recipe | null>(null);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
 
   useEffect(() => {
@@ -70,9 +72,17 @@ const Index = () => {
     setIsAddModalOpen(false);
   };
 
-  const handleEditRecipe = async (updatedRecipe: Recipe) => {
-    await updateRecipe(updatedRecipe);
+  const openEditModal = (recipe: Recipe) => {
+    setSelectedRecipe(recipe);
     setIsDetailModalOpen(false);
+    setIsEditModalOpen(true);
+  };
+
+  const handleUpdateRecipe = async (updatedRecipe: Recipe) => {
+    await updateRecipe(updatedRecipe);
+    setIsEditModalOpen(false);
+    setSelectedRecipe(updatedRecipe);
+    setIsDetailModalOpen(true);
   };
 
   const handleDeleteRecipe = async (recipeId: string) => {
@@ -252,7 +262,7 @@ const Index = () => {
         recipe={selectedRecipe}
         isOpen={isDetailModalOpen}
         onClose={() => setIsDetailModalOpen(false)}
-        onEdit={handleEditRecipe}
+        onEdit={openEditModal}
         onDelete={handleDeleteRecipe}
       />
 
@@ -260,6 +270,13 @@ const Index = () => {
         isOpen={isAddModalOpen}
         onClose={() => setIsAddModalOpen(false)}
         onAdd={handleAddRecipe}
+      />
+
+      <EditRecipeModal
+        recipe={selectedRecipe}
+        isOpen={isEditModalOpen}
+        onClose={() => setIsEditModalOpen(false)}
+        onEdit={handleUpdateRecipe}
       />
     </div>
   );

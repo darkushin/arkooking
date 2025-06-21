@@ -129,6 +129,7 @@ export const useRecipes = () => {
           tags: updatedRecipe.tags,
           ingredients: updatedRecipe.ingredients,
           instructions: updatedRecipe.instructions,
+          visibility: updatedRecipe.visibility,
           updated_at: new Date().toISOString()
         })
         .eq('id', updatedRecipe.id);
