@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Recipe } from '../types/Recipe';
@@ -38,7 +37,9 @@ export const useRecipes = () => {
         servings: recipe.servings,
         tags: recipe.tags || [],
         ingredients: recipe.ingredients || [],
-        instructions: recipe.instructions || []
+        instructions: recipe.instructions || [],
+        visibility: (recipe as any).visibility || 'public',
+        user_id: recipe.user_id,
       }));
 
       setRecipes(transformedRecipes);
@@ -71,7 +72,8 @@ export const useRecipes = () => {
           servings: newRecipe.servings,
           tags: newRecipe.tags,
           ingredients: newRecipe.ingredients,
-          instructions: newRecipe.instructions
+          instructions: newRecipe.instructions,
+          visibility: newRecipe.visibility || 'public',
         })
         .select()
         .single();
@@ -89,7 +91,9 @@ export const useRecipes = () => {
         servings: data.servings,
         tags: data.tags || [],
         ingredients: data.ingredients || [],
-        instructions: data.instructions || []
+        instructions: data.instructions || [],
+        visibility: (data as any).visibility || 'public',
+        user_id: data.user_id,
       };
 
       setRecipes(prev => [transformedRecipe, ...prev]);

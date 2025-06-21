@@ -1,4 +1,3 @@
-
 export interface Recipe {
   id: string;
   title: string;
@@ -10,4 +9,6 @@ export interface Recipe {
   tags: string[];
   ingredients: string[];
   instructions: string[];
+  visibility: 'public' | 'private';
+  user_id: string;
 }

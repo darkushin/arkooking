@@ -47,9 +47,14 @@ const Index = () => {
     setSearchTerm('');
   };
 
+  // Only show public recipes or private recipes owned by the current user
+  const visibleRecipes = recipes.filter(
+    recipe => recipe.visibility === 'public' || recipe.user_id === user.id
+  );
+
   const recipesInCategory = selectedCategory
-    ? recipes.filter(recipe => recipe.tags.includes(selectedCategory))
-    : recipes;
+    ? visibleRecipes.filter(recipe => recipe.tags.includes(selectedCategory))
+    : visibleRecipes;
 
   const filteredRecipes = recipesInCategory.filter(recipe =>
     recipe.title.toLowerCase().includes(searchTerm.toLowerCase())

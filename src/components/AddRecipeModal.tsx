@@ -2,11 +2,12 @@ import { useState, useRef } from 'react';
 import { X, Plus, Camera, Trash2 } from 'lucide-react';
 import { Recipe } from '../types/Recipe';
 import { commonTags } from '@/lib/categories';
+import { Switch } from '@/components/ui/switch';
 
 interface AddRecipeModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onAdd: (recipe: Omit<Recipe, 'id'>) => void;
+  onAdd: (recipe: Omit<Recipe, 'id' | 'user_id'>) => void;
 }
 
 const AddRecipeModal = ({ isOpen, onClose, onAdd }: AddRecipeModalProps) => {
@@ -20,6 +21,7 @@ const AddRecipeModal = ({ isOpen, onClose, onAdd }: AddRecipeModalProps) => {
   const [newTag, setNewTag] = useState('');
   const [ingredients, setIngredients] = useState<string[]>(['']);
   const [instructions, setInstructions] = useState<string[]>(['']);
+  const [isPrivate, setIsPrivate] = useState(false);
   
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -80,7 +82,7 @@ const AddRecipeModal = ({ isOpen, onClose, onAdd }: AddRecipeModalProps) => {
     
     if (!title.trim()) return;
 
-    const recipe: Omit<Recipe, 'id'> = {
+    const recipe: Omit<Recipe, 'id' | 'user_id'> = {
       title: title.trim(),
       description: description.trim(),
       image: image || undefined,
@@ -89,7 +91,8 @@ const AddRecipeModal = ({ isOpen, onClose, onAdd }: AddRecipeModalProps) => {
       servings,
       tags,
       ingredients: ingredients.filter(ing => ing.trim()),
-      instructions: instructions.filter(inst => inst.trim())
+      instructions: instructions.filter(inst => inst.trim()),
+      visibility: isPrivate ? 'private' : 'public',
     };
 
     onAdd(recipe);
@@ -321,6 +324,15 @@ const AddRecipeModal = ({ isOpen, onClose, onAdd }: AddRecipeModalProps) => {
                   Add Step
                 </button>
               </div>
+            </div>
+
+            {/* Visibility Toggle */}
+            <div className="flex items-center gap-3">
+              <Switch id="private-switch" checked={isPrivate} onCheckedChange={setIsPrivate} />
+              <label htmlFor="private-switch" className="text-sm font-medium text-amber-900 select-none cursor-pointer">
+                Private Recipe
+              </label>
+              <span className="text-xs text-amber-600">(Only you will see this if enabled. Default is public.)</span>
             </div>
 
             {/* Submit Button */}
