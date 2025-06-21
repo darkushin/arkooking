@@ -162,20 +162,71 @@ const Index = () => {
           </>
         ) : (
           <div>
-            <h2 className="text-2xl font-bold text-amber-900 mb-4">Categories</h2>
-            <div className="grid grid-cols-3 gap-4">
-              {categories.map(category => (
-                <div
-                  key={category.name}
-                  onClick={() => handleCategoryClick(category.name)}
-                  className="bg-white/80 backdrop-blur-sm p-4 rounded-xl shadow-sm hover:shadow-md transition-shadow cursor-pointer flex flex-col items-center justify-center text-center"
+            {/* Global Search Bar */}
+            <div className="relative mb-6">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-amber-600 w-4 h-4" />
+              <Input
+                type="text"
+                placeholder="Search all recipes..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10 bg-white/90 backdrop-blur-sm border-amber-200 focus:border-amber-400"
+              />
+              {searchTerm && (
+                <button
+                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-amber-600 hover:text-amber-900"
+                  onClick={() => setSearchTerm('')}
+                  type="button"
                 >
-                  <category.icon className="w-10 h-10 text-amber-600 mb-2" />
-                  <h3 className="font-bold text-amber-900">{category.name}</h3>
-                  <p className="text-sm text-amber-700">({getRecipeCountForCategory(category.name)} recipes)</p>
-                </div>
-              ))}
+                  ✕
+                </button>
+              )}
             </div>
+            {searchTerm ? (
+              <>
+                {filteredRecipes.length === 0 ? (
+                  <div className="text-center py-12">
+                    <div className="text-6xl mb-4">🍳</div>
+                    <h3 className="text-lg font-medium text-amber-800 mb-2">No recipes found</h3>
+                    <p className="text-amber-600 mb-6">Try a different search or add a new recipe!</p>
+                    <Button
+                      onClick={() => setIsAddModalOpen(true)}
+                      className="bg-amber-600 hover:bg-amber-700 text-white"
+                    >
+                      <Plus className="w-4 h-4 mr-2" />
+                      Add Recipe
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {filteredRecipes.map((recipe) => (
+                      <RecipeCard
+                        key={recipe.id}
+                        recipe={recipe}
+                        onClick={() => handleRecipeClick(recipe)}
+                      />
+                    ))}
+                  </div>
+                )}
+              </>
+            ) : (
+              <>
+                <h2 className="text-2xl font-bold text-amber-900 mb-4">Categories</h2>
+                <div className="grid grid-cols-3 gap-4">
+                  {categories.map(category => (
+                    <div
+                      key={category.name}
+                      onClick={() => handleCategoryClick(category.name)}
+                      className="bg-white/80 backdrop-blur-sm p-4 rounded-xl shadow-sm hover:shadow-md transition-shadow cursor-pointer flex flex-col items-center justify-center text-center"
+                    >
+                      <category.icon className="w-10 h-10 text-amber-600 mb-2" />
+                      <h3 className="font-bold text-amber-900">{category.name}</h3>
+                      <p className="text-sm text-amber-700">({getRecipeCountForCategory(category.name)} recipes)</p>
+                    </div>
+                  ))}
+                </div>
+              </>
+            )}
           </div>
         )}
       </main>
