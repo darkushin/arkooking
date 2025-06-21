@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Plus, Search, LogOut, User } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -77,7 +76,7 @@ const Index = () => {
       {/* Header */}
       <header className="bg-white/80 backdrop-blur-sm shadow-sm sticky top-0 z-40">
         <div className="max-w-md mx-auto px-4 py-4 flex items-center justify-between">
-          <h1 className="text-2xl font-bold text-amber-900">My Recipes</h1>
+          <h1 className="text-4xl font-dancing-script text-amber-900">arkooking</h1>
           <div className="flex items-center gap-2">
             <div className="flex items-center gap-2 text-amber-700">
               <User className="w-4 h-4" />
