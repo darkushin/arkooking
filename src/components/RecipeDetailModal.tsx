@@ -1,6 +1,7 @@
-import { useState } from 'react';
-import { X, Clock, Users, Edit, Delete, Check } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { X, Clock, Users, Edit, Delete, Check, Minus, Plus } from 'lucide-react';
 import { Recipe } from '../types/Recipe';
+import { scaleIngredient } from '@/lib/recipe-utils';
 
 interface RecipeDetailModalProps {
   recipe: Recipe | null;
@@ -13,6 +14,46 @@ interface RecipeDetailModalProps {
 const RecipeDetailModal = ({ recipe, isOpen, onClose, onEdit, onDelete }: RecipeDetailModalProps) => {
   const [checkedIngredients, setCheckedIngredients] = useState<Set<number>>(new Set());
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [desiredServings, setDesiredServings] = useState(String(recipe?.servings || ''));
+  const [adjustedIngredients, setAdjustedIngredients] = useState<string[]>([]);
+
+  useEffect(() => {
+    if (recipe) {
+      setDesiredServings(String(recipe.servings));
+      setCheckedIngredients(new Set());
+    }
+  }, [recipe]);
+
+  useEffect(() => {
+    if (!recipe) {
+      setAdjustedIngredients([]);
+      return;
+    }
+
+    const desired = parseFloat(desiredServings);
+
+    if (isNaN(desired)) {
+      const placeholder = recipe.ingredients.map(() => '—');
+      setAdjustedIngredients(placeholder);
+      return;
+    }
+    
+    if (desired === recipe.servings) {
+      setAdjustedIngredients(recipe.ingredients);
+      return;
+    }
+    
+    if (desired <= 0) {
+      const placeholder = recipe.ingredients.map(() => '—');
+      setAdjustedIngredients(placeholder);
+      return;
+    }
+
+    const scaleFactor = desired / recipe.servings;
+    const newIngredients = recipe.ingredients.map(ing => scaleIngredient(ing, scaleFactor));
+    setAdjustedIngredients(newIngredients);
+    
+  }, [desiredServings, recipe]);
 
   if (!isOpen || !recipe) return null;
 
@@ -30,6 +71,24 @@ const RecipeDetailModal = ({ recipe, isOpen, onClose, onEdit, onDelete }: Recipe
     onDelete(recipe.id);
     setShowDeleteConfirm(false);
     onClose();
+  };
+
+  const handleDecrementServings = () => {
+    setDesiredServings(s => {
+      const current = parseFloat(s);
+      const startValue = recipe?.servings ?? 1;
+      const newAmount = Math.max(0.5, (isNaN(current) ? startValue : current) - 0.5);
+      return String(newAmount);
+    });
+  };
+
+  const handleIncrementServings = () => {
+    setDesiredServings(s => {
+      const current = parseFloat(s);
+      const startValue = recipe?.servings ?? 1;
+      const newAmount = (isNaN(current) ? startValue : current) + 0.5;
+      return String(newAmount);
+    });
   };
 
   return (
@@ -94,9 +153,32 @@ const RecipeDetailModal = ({ recipe, isOpen, onClose, onEdit, onDelete }: Recipe
                 <Clock className="w-4 h-4" />
                 <span>Cook: {recipe.cookTime}m</span>
               </div>
-              <div className="flex items-center gap-1">
+              <div className="flex items-center gap-2">
                 <Users className="w-4 h-4" />
-                <span>{recipe.servings} servings</span>
+                <div className="flex items-center gap-2 bg-amber-50 rounded-full px-2 py-1">
+                  <button
+                    onClick={handleDecrementServings}
+                    className="p-1 rounded-full hover:bg-amber-100"
+                    disabled={(parseFloat(desiredServings) || recipe.servings) <= 0.5}
+                  >
+                    <Minus className="w-3 h-3 text-amber-700"/>
+                  </button>
+                  <input
+                    type="number"
+                    step="0.5"
+                    value={desiredServings}
+                    onChange={(e) => setDesiredServings(e.target.value)}
+                    className="w-12 text-center bg-transparent font-medium text-amber-800 focus:outline-none"
+                    placeholder={String(recipe.servings)}
+                  />
+                   <button
+                    onClick={handleIncrementServings}
+                    className="p-1 rounded-full hover:bg-amber-100"
+                  >
+                    <Plus className="w-3 h-3 text-amber-700"/>
+                  </button>
+                </div>
+                <span>servings</span>
               </div>
             </div>
 
@@ -115,7 +197,7 @@ const RecipeDetailModal = ({ recipe, isOpen, onClose, onEdit, onDelete }: Recipe
             {/* Ingredients */}
             <h2 className="text-xl font-bold text-amber-900 mb-3">Ingredients</h2>
             <div className="space-y-2 mb-6">
-              {recipe.ingredients.map((ingredient, index) => (
+              {adjustedIngredients.map((ingredient, index) => (
                 <div
                   key={index}
                   onClick={() => toggleIngredient(index)}
