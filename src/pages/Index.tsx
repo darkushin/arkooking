@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Plus, Search, LogOut, User } from 'lucide-react';
+import { Plus, Search, LogOut, User, ChevronLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import RecipeCard from '../components/RecipeCard';
@@ -9,17 +9,18 @@ import { Recipe } from '../types/Recipe';
 import { useAuth } from '../hooks/useAuth';
 import { useRecipes } from '../hooks/useRecipes';
 import { useNavigate } from 'react-router-dom';
+import { categories } from '@/lib/categories';
 
 const Index = () => {
   const { user, loading: authLoading, signOut } = useAuth();
   const { recipes, loading: recipesLoading, addRecipe, updateRecipe, deleteRecipe } = useRecipes();
   const navigate = useNavigate();
   
-  // State variables for managing search term, selected recipe, and modal visibility
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedRecipe, setSelectedRecipe] = useState<Recipe | null>(null);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -32,11 +33,26 @@ const Index = () => {
     navigate('/auth');
   };
 
-  // Handlers for filtering recipes, opening recipe details, adding a new recipe,
-  // editing an existing recipe, and deleting a recipe
-  const filteredRecipes = recipes.filter(recipe =>
-    recipe.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    recipe.tags.some(tag => tag.toLowerCase().includes(searchTerm.toLowerCase()))
+  const getRecipeCountForCategory = (categoryName: string) => {
+    return recipes.filter(recipe => recipe.tags.includes(categoryName)).length;
+  };
+
+  const handleCategoryClick = (categoryName: string) => {
+    setSelectedCategory(categoryName);
+    setSearchTerm('');
+  };
+
+  const handleClearCategory = () => {
+    setSelectedCategory(null);
+    setSearchTerm('');
+  };
+
+  const recipesInCategory = selectedCategory
+    ? recipes.filter(recipe => recipe.tags.includes(selectedCategory))
+    : recipes;
+
+  const filteredRecipes = recipesInCategory.filter(recipe =>
+    recipe.title.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   const handleRecipeClick = (recipe: Recipe) => {
@@ -95,47 +111,77 @@ const Index = () => {
       </header>
 
       <main className="max-w-md mx-auto px-4 py-6">
-        {/* Search Bar */}
-        <div className="relative mb-6">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-amber-600 w-4 h-4" />
-          <Input
-            type="text"
-            placeholder="Search recipes..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-10 bg-white/90 backdrop-blur-sm border-amber-200 focus:border-amber-400"
-          />
-        </div>
-
-        {/* Recipes Grid */}
-        {filteredRecipes.length === 0 ? (
-          <div className="text-center py-12">
-            <div className="text-6xl mb-4">🍳</div>
-            <h3 className="text-lg font-medium text-amber-800 mb-2">No recipes yet</h3>
-            <p className="text-amber-600 mb-6">Start building your recipe collection!</p>
+        {selectedCategory ? (
+          <>
             <Button
-              onClick={() => setIsAddModalOpen(true)}
-              className="bg-amber-600 hover:bg-amber-700 text-white"
+              onClick={handleClearCategory}
+              variant="ghost"
+              className="mb-4 text-amber-700 hover:text-amber-800 -ml-4"
             >
-              <Plus className="w-4 h-4 mr-2" />
-              Add Your First Recipe
+              <ChevronLeft className="w-4 h-4 mr-1" />
+              Back to Categories
             </Button>
-          </div>
-        ) : (
-          <div className="space-y-4">
-            {filteredRecipes.map((recipe) => (
-              <RecipeCard
-                key={recipe.id}
-                recipe={recipe}
-                onClick={() => handleRecipeClick(recipe)}
+
+            {/* Search Bar */}
+            <div className="relative mb-6">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-amber-600 w-4 h-4" />
+              <Input
+                type="text"
+                placeholder={`Search in ${selectedCategory}...`}
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10 bg-white/90 backdrop-blur-sm border-amber-200 focus:border-amber-400"
               />
-            ))}
+            </div>
+
+            {/* Recipes Grid */}
+            {filteredRecipes.length === 0 ? (
+              <div className="text-center py-12">
+                <div className="text-6xl mb-4">🍳</div>
+                <h3 className="text-lg font-medium text-amber-800 mb-2">No recipes in {selectedCategory}</h3>
+                <p className="text-amber-600 mb-6">Want to add one?</p>
+                <Button
+                  onClick={() => setIsAddModalOpen(true)}
+                  className="bg-amber-600 hover:bg-amber-700 text-white"
+                >
+                  <Plus className="w-4 h-4 mr-2" />
+                  Add Recipe
+                </Button>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {filteredRecipes.map((recipe) => (
+                  <RecipeCard
+                    key={recipe.id}
+                    recipe={recipe}
+                    onClick={() => handleRecipeClick(recipe)}
+                  />
+                ))}
+              </div>
+            )}
+          </>
+        ) : (
+          <div>
+            <h2 className="text-2xl font-bold text-amber-900 mb-4">Categories</h2>
+            <div className="grid grid-cols-3 gap-4">
+              {categories.map(category => (
+                <div
+                  key={category.name}
+                  onClick={() => handleCategoryClick(category.name)}
+                  className="bg-white/80 backdrop-blur-sm p-4 rounded-xl shadow-sm hover:shadow-md transition-shadow cursor-pointer flex flex-col items-center justify-center text-center"
+                >
+                  <category.icon className="w-10 h-10 text-amber-600 mb-2" />
+                  <h3 className="font-bold text-amber-900">{category.name}</h3>
+                  <p className="text-sm text-amber-700">({getRecipeCountForCategory(category.name)} recipes)</p>
+                </div>
+              ))}
+            </div>
           </div>
         )}
       </main>
 
       {/* Floating Add Button */}
-      {filteredRecipes.length > 0 && (
+      {(selectedCategory === null || filteredRecipes.length > 0) && (
         <Button
           onClick={() => setIsAddModalOpen(true)}
           className="fixed bottom-6 right-6 w-14 h-14 rounded-full bg-amber-600 hover:bg-amber-700 text-white shadow-lg"

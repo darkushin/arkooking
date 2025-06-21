@@ -1,7 +1,7 @@
-
 import { useState, useRef } from 'react';
 import { X, Plus, Camera, Trash2 } from 'lucide-react';
 import { Recipe } from '../types/Recipe';
+import { commonTags } from '@/lib/categories';
 
 interface AddRecipeModalProps {
   isOpen: boolean;
@@ -24,8 +24,6 @@ const AddRecipeModal = ({ isOpen, onClose, onAdd }: AddRecipeModalProps) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   if (!isOpen) return null;
-
-  const commonTags = ['Breakfast', 'Lunch', 'Dinner', 'Dessert', 'Snack', 'Healthy', 'Vegetarian', 'Vegan', 'Gluten-Free', 'Quick', 'Comfort Food', 'Baking'];
 
   const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
