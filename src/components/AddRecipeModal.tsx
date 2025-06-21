@@ -4,11 +4,12 @@ import { X, Plus, Camera, Trash2 } from 'lucide-react';
 import { Recipe } from '../types/Recipe';
 
 interface AddRecipeModalProps {
+  isOpen: boolean;
   onClose: () => void;
-  onSave: (recipe: Omit<Recipe, 'id'>) => void;
+  onAdd: (recipe: Omit<Recipe, 'id'>) => void;
 }
 
-const AddRecipeModal = ({ onClose, onSave }: AddRecipeModalProps) => {
+const AddRecipeModal = ({ isOpen, onClose, onAdd }: AddRecipeModalProps) => {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [image, setImage] = useState('');
@@ -21,6 +22,8 @@ const AddRecipeModal = ({ onClose, onSave }: AddRecipeModalProps) => {
   const [instructions, setInstructions] = useState<string[]>(['']);
   
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  if (!isOpen) return null;
 
   const commonTags = ['Breakfast', 'Lunch', 'Dinner', 'Dessert', 'Snack', 'Healthy', 'Vegetarian', 'Vegan', 'Gluten-Free', 'Quick', 'Comfort Food', 'Baking'];
 
@@ -91,7 +94,7 @@ const AddRecipeModal = ({ onClose, onSave }: AddRecipeModalProps) => {
       instructions: instructions.filter(inst => inst.trim())
     };
 
-    onSave(recipe);
+    onAdd(recipe);
   };
 
   return (

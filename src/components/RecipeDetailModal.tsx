@@ -4,15 +4,18 @@ import { X, Clock, Users, Edit, Delete, Check } from 'lucide-react';
 import { Recipe } from '../types/Recipe';
 
 interface RecipeDetailModalProps {
-  recipe: Recipe;
+  recipe: Recipe | null;
+  isOpen: boolean;
   onClose: () => void;
   onEdit: (recipe: Recipe) => void;
   onDelete: (recipeId: string) => void;
 }
 
-const RecipeDetailModal = ({ recipe, onClose, onEdit, onDelete }: RecipeDetailModalProps) => {
+const RecipeDetailModal = ({ recipe, isOpen, onClose, onEdit, onDelete }: RecipeDetailModalProps) => {
   const [checkedIngredients, setCheckedIngredients] = useState<Set<number>>(new Set());
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+
+  if (!isOpen || !recipe) return null;
 
   const toggleIngredient = (index: number) => {
     const newChecked = new Set(checkedIngredients);
