@@ -11,6 +11,7 @@ import { useAuth } from '../hooks/useAuth';
 import { useRecipes } from '../hooks/useRecipes';
 import { useNavigate } from 'react-router-dom';
 import { categories } from '@/lib/categories';
+import Sidebar from '@/components/Sidebar';
 
 const Index = () => {
   const { user, loading: authLoading, signOut } = useAuth();
@@ -23,6 +24,7 @@ const Index = () => {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -106,20 +108,19 @@ const Index = () => {
     <div className="min-h-screen bg-gradient-to-br from-cream-50 to-rose-50">
       {/* Header */}
       <header className="bg-white/80 backdrop-blur-sm shadow-sm sticky top-0 z-40">
-        <div className="max-w-md mx-auto px-4 py-4 flex items-center justify-between">
+        <div className="max-w-md mx-auto px-4 py-4 flex items-center justify-center relative">
+          <div className="absolute left-4">
+            {/* Placeholder for potential left-side icon */}
+          </div>
           <h1 className="text-4xl font-dancing-script text-amber-900">arkooking</h1>
-          <div className="flex items-center gap-2">
-            <div className="flex items-center gap-2 text-amber-700">
-              <User className="w-4 h-4" />
-              <span className="text-sm">{user.email}</span>
-            </div>
+          <div className="absolute right-4">
             <Button
-              onClick={handleSignOut}
+              onClick={() => setIsSidebarOpen(true)}
               variant="ghost"
-              size="sm"
+              size="icon"
               className="text-amber-700 hover:text-amber-800"
             >
-              <LogOut className="w-4 h-4" />
+              <User className="w-5 h-5" />
             </Button>
           </div>
         </div>
@@ -278,6 +279,7 @@ const Index = () => {
         onClose={() => setIsEditModalOpen(false)}
         onEdit={handleUpdateRecipe}
       />
+      <Sidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
     </div>
   );
 };

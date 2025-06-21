@@ -14,7 +14,7 @@ interface EditRecipeModalProps {
 const EditRecipeModal = ({ isOpen, onClose, onEdit, recipe: initialRecipe }: EditRecipeModalProps) => {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
-  const [image, setImage] = useState('');
+  const [images, setImages] = useState<string[]>([]);
   const [cookTime, setCookTime] = useState(30);
   const [prepTime, setPrepTime] = useState(15);
   const [servings, setServings] = useState(4);
@@ -30,7 +30,7 @@ const EditRecipeModal = ({ isOpen, onClose, onEdit, recipe: initialRecipe }: Edi
     if (initialRecipe) {
       setTitle(initialRecipe.title);
       setDescription(initialRecipe.description || '');
-      setImage(initialRecipe.image || '');
+      setImages(initialRecipe.images || []);
       setCookTime(initialRecipe.cookTime);
       setPrepTime(initialRecipe.prepTime);
       setServings(initialRecipe.servings);
@@ -43,15 +43,42 @@ const EditRecipeModal = ({ isOpen, onClose, onEdit, recipe: initialRecipe }: Edi
 
   if (!isOpen || !initialRecipe) return null;
 
+  const handleSetPreviewImage = (indexToMakeFirst: number) => {
+    if (indexToMakeFirst === 0) return;
+
+    setImages(currentImages => {
+      const newImages = [...currentImages];
+      const itemToMove = newImages.splice(indexToMakeFirst, 1)[0];
+      newImages.unshift(itemToMove);
+      return newImages;
+    });
+  };
+
   const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        setImage(e.target?.result as string);
-      };
-      reader.readAsDataURL(file);
+    const files = event.target.files;
+    if (files) {
+      const newImages: string[] = [];
+      let filesToProcess = files.length;
+
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          if (e.target?.result) {
+            newImages.push(e.target.result as string);
+          }
+          filesToProcess--;
+          if (filesToProcess === 0) {
+            setImages(prev => [...prev, ...newImages]);
+          }
+        };
+        reader.readAsDataURL(file);
+      }
     }
+  };
+
+  const removeImage = (index: number) => {
+    setImages(prev => prev.filter((_, i) => i !== index));
   };
 
   const addTag = (tag: string) => {
@@ -102,7 +129,7 @@ const EditRecipeModal = ({ isOpen, onClose, onEdit, recipe: initialRecipe }: Edi
       ...initialRecipe,
       title: title.trim(),
       description: description.trim(),
-      image: image || undefined,
+      images: images,
       cookTime,
       prepTime,
       servings,
@@ -134,21 +161,44 @@ const EditRecipeModal = ({ isOpen, onClose, onEdit, recipe: initialRecipe }: Edi
           <div className="p-6 space-y-6">
             {/* Image Upload */}
             <div>
-              <label className="block text-sm font-medium text-amber-900 mb-2">Recipe Photo</label>
-              <div
-                onClick={() => fileInputRef.current?.click()}
-                className={`w-full h-32 border-2 border-dashed border-amber-200 rounded-xl cursor-pointer hover:border-amber-300 transition-colors ${
-                  image ? 'p-0' : 'flex items-center justify-center'
-                }`}
-              >
-                {image ? (
-                  <img src={image} alt="Recipe" className="w-full h-full object-cover rounded-xl" />
-                ) : (
+              <label className="block text-sm font-medium text-amber-900 mb-2">Recipe Photos</label>
+              <p className="text-sm text-amber-600 mb-2">Click an image to set it as the preview.</p>
+              <div className="grid grid-cols-3 gap-4 mb-2">
+                {images.map((image, index) => (
+                  <div
+                    key={image}
+                    onClick={() => handleSetPreviewImage(index)}
+                    className={`relative aspect-square rounded-xl cursor-pointer transition-all ${
+                      index === 0 ? 'ring-2 ring-amber-500 ring-offset-2' : 'hover:ring-2 hover:ring-amber-200'
+                    }`}
+                  >
+                    <img src={image} alt={`Recipe image ${index + 1}`} className="w-full h-full object-cover rounded-xl" />
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        removeImage(index);
+                      }}
+                      className="absolute top-1 right-1 bg-black/50 text-white rounded-full p-1 hover:bg-black/70"
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                    {index === 0 && (
+                      <div className="absolute bottom-1 left-1/2 -translate-x-1/2 bg-black/60 text-white text-[10px] px-2 py-0.5 rounded-full">
+                        Preview
+                      </div>
+                    )}
+                  </div>
+                ))}
+                <div
+                  onClick={() => fileInputRef.current?.click()}
+                  className="aspect-square border-2 border-dashed border-amber-200 rounded-xl cursor-pointer hover:border-amber-300 transition-colors flex items-center justify-center"
+                >
                   <div className="text-center">
                     <Camera className="w-8 h-8 text-amber-400 mx-auto mb-2" />
-                    <p className="text-amber-600 text-sm">Tap to add photo</p>
+                    <p className="text-amber-600 text-sm">Add</p>
                   </div>
-                )}
+                </div>
               </div>
               <input
                 ref={fileInputRef}
@@ -156,6 +206,7 @@ const EditRecipeModal = ({ isOpen, onClose, onEdit, recipe: initialRecipe }: Edi
                 accept="image/*"
                 onChange={handleImageUpload}
                 className="hidden"
+                multiple
               />
             </div>
 

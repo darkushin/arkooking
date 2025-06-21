@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { X, Clock, Users, Edit, Delete, Check, Minus, Plus } from 'lucide-react';
+import { X, Clock, Users, Edit, Delete, Check, Minus, Plus, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Recipe } from '../types/Recipe';
 import { scaleIngredient } from '@/lib/recipe-utils';
 
@@ -16,11 +16,13 @@ const RecipeDetailModal = ({ recipe, isOpen, onClose, onEdit, onDelete }: Recipe
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [desiredServings, setDesiredServings] = useState(String(recipe?.servings || ''));
   const [adjustedIngredients, setAdjustedIngredients] = useState<string[]>([]);
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
 
   useEffect(() => {
     if (recipe) {
       setDesiredServings(String(recipe.servings));
       setCheckedIngredients(new Set());
+      setCurrentImageIndex(0);
     }
   }, [recipe]);
 
@@ -91,6 +93,18 @@ const RecipeDetailModal = ({ recipe, isOpen, onClose, onEdit, onDelete }: Recipe
     });
   };
 
+  const handleNextImage = () => {
+    if (recipe && recipe.images.length > 1) {
+      setCurrentImageIndex((prev) => (prev + 1) % recipe.images.length);
+    }
+  };
+
+  const handlePrevImage = () => {
+    if (recipe && recipe.images.length > 1) {
+      setCurrentImageIndex((prev) => (prev - 1 + recipe.images.length) % recipe.images.length);
+    }
+  };
+
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-end justify-center z-50 p-4">
       <div className="bg-white rounded-t-3xl max-w-md w-full max-h-[90vh] overflow-hidden animate-slide-up">
@@ -98,12 +112,25 @@ const RecipeDetailModal = ({ recipe, isOpen, onClose, onEdit, onDelete }: Recipe
         <div className="relative">
           {/* Image */}
           <div className="h-48 bg-gradient-to-br from-amber-100 to-rose-100 relative">
-            {recipe.image ? (
-              <img
-                src={recipe.image}
-                alt={recipe.title}
-                className="w-full h-full object-cover"
-              />
+            {recipe.images && recipe.images.length > 0 ? (
+              <>
+                <img
+                  src={recipe.images[currentImageIndex]}
+                  alt={recipe.title}
+                  className="w-full h-full object-cover"
+                />
+                {recipe.images.length > 1 && (
+                  <>
+                    <button onClick={handlePrevImage} className="absolute z-10 left-2 top-1/2 -translate-y-1/2 bg-black/30 text-white p-1 rounded-full hover:bg-black/50 transition-colors focus:outline-none"><ChevronLeft className="w-6 h-6" /></button>
+                    <button onClick={handleNextImage} className="absolute z-10 right-2 top-1/2 -translate-y-1/2 bg-black/30 text-white p-1 rounded-full hover:bg-black/50 transition-colors focus:outline-none"><ChevronRight className="w-6 h-6" /></button>
+                    <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-1.5">
+                      {recipe.images.map((_, index) => (
+                        <div key={index} className={`w-2 h-2 rounded-full ${index === currentImageIndex ? 'bg-white' : 'bg-white/50'}`}></div>
+                      ))}
+                    </div>
+                  </>
+                )}
+              </>
             ) : (
               <div className="w-full h-full flex items-center justify-center">
                 <div className="text-6xl">🍳</div>

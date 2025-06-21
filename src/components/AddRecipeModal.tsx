@@ -13,7 +13,7 @@ interface AddRecipeModalProps {
 const AddRecipeModal = ({ isOpen, onClose, onAdd }: AddRecipeModalProps) => {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
-  const [image, setImage] = useState('');
+  const [images, setImages] = useState<string[]>([]);
   const [cookTime, setCookTime] = useState(30);
   const [prepTime, setPrepTime] = useState(15);
   const [servings, setServings] = useState(4);
@@ -28,14 +28,30 @@ const AddRecipeModal = ({ isOpen, onClose, onAdd }: AddRecipeModalProps) => {
   if (!isOpen) return null;
 
   const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        setImage(e.target?.result as string);
-      };
-      reader.readAsDataURL(file);
+    const files = event.target.files;
+    if (files) {
+      const newImages: string[] = [];
+      let filesToProcess = files.length;
+
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          if (e.target?.result) {
+            newImages.push(e.target.result as string);
+          }
+          filesToProcess--;
+          if (filesToProcess === 0) {
+            setImages(prev => [...prev, ...newImages]);
+          }
+        };
+        reader.readAsDataURL(file);
+      }
     }
+  };
+
+  const removeImage = (index: number) => {
+    setImages(prev => prev.filter((_, i) => i !== index));
   };
 
   const addTag = (tag: string) => {
@@ -85,7 +101,7 @@ const AddRecipeModal = ({ isOpen, onClose, onAdd }: AddRecipeModalProps) => {
     const recipe: Omit<Recipe, 'id' | 'user_id'> = {
       title: title.trim(),
       description: description.trim(),
-      image: image || undefined,
+      images: images,
       cookTime,
       prepTime,
       servings,
@@ -117,21 +133,29 @@ const AddRecipeModal = ({ isOpen, onClose, onAdd }: AddRecipeModalProps) => {
           <div className="p-6 space-y-6">
             {/* Image Upload */}
             <div>
-              <label className="block text-sm font-medium text-amber-900 mb-2">Recipe Photo</label>
-              <div
-                onClick={() => fileInputRef.current?.click()}
-                className={`w-full h-32 border-2 border-dashed border-amber-200 rounded-xl cursor-pointer hover:border-amber-300 transition-colors ${
-                  image ? 'p-0' : 'flex items-center justify-center'
-                }`}
-              >
-                {image ? (
-                  <img src={image} alt="Recipe" className="w-full h-full object-cover rounded-xl" />
-                ) : (
+              <label className="block text-sm font-medium text-amber-900 mb-2">Recipe Photos</label>
+              <div className="grid grid-cols-3 gap-4 mb-2">
+                {images.map((image, index) => (
+                  <div key={index} className="relative aspect-square">
+                    <img src={image} alt={`Recipe image ${index + 1}`} className="w-full h-full object-cover rounded-xl" />
+                    <button
+                      type="button"
+                      onClick={() => removeImage(index)}
+                      className="absolute top-1 right-1 bg-black/50 text-white rounded-full p-1"
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                  </div>
+                ))}
+                <div
+                  onClick={() => fileInputRef.current?.click()}
+                  className="aspect-square border-2 border-dashed border-amber-200 rounded-xl cursor-pointer hover:border-amber-300 transition-colors flex items-center justify-center"
+                >
                   <div className="text-center">
                     <Camera className="w-8 h-8 text-amber-400 mx-auto mb-2" />
-                    <p className="text-amber-600 text-sm">Tap to add photo</p>
+                    <p className="text-amber-600 text-sm">Add</p>
                   </div>
-                )}
+                </div>
               </div>
               <input
                 ref={fileInputRef}
@@ -139,6 +163,7 @@ const AddRecipeModal = ({ isOpen, onClose, onAdd }: AddRecipeModalProps) => {
                 accept="image/*"
                 onChange={handleImageUpload}
                 className="hidden"
+                multiple
               />
             </div>
 

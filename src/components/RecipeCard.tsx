@@ -1,4 +1,3 @@
-
 import { Clock, Users } from 'lucide-react';
 import { Recipe } from '../types/Recipe';
 
@@ -11,36 +10,24 @@ const RecipeCard = ({ recipe, onClick }: RecipeCardProps) => {
   return (
     <div
       onClick={onClick}
-      className="bg-white/90 backdrop-blur-sm rounded-2xl shadow-md hover:shadow-lg transform hover:scale-[1.02] transition-all duration-300 cursor-pointer overflow-hidden"
+      className="bg-white/80 backdrop-blur-sm shadow-sm rounded-2xl p-4 flex gap-4 items-center hover:shadow-md transition-all cursor-pointer"
     >
-      {/* Image */}
-      <div className="relative h-48 bg-gradient-to-br from-amber-100 to-rose-100">
-        {recipe.image ? (
+      <div className="w-24 h-24 rounded-xl overflow-hidden flex-shrink-0">
+        {recipe.images && recipe.images.length > 0 ? (
           <img
-            src={recipe.image}
+            src={recipe.images[0]}
             alt={recipe.title}
             className="w-full h-full object-cover"
           />
         ) : (
-          <div className="w-full h-full flex items-center justify-center">
-            <div className="text-6xl">🍳</div>
+          <div className="w-full h-full bg-gradient-to-br from-amber-100 to-rose-100 flex items-center justify-center">
+            <span className="text-4xl">🍳</span>
           </div>
         )}
-        <div className="absolute top-3 right-3 bg-white/90 backdrop-blur-sm rounded-full px-2 py-1">
-          <span className="text-xs font-medium text-amber-800">
-            {recipe.tags[0] || 'Recipe'}
-          </span>
-        </div>
       </div>
-
-      {/* Content */}
-      <div className="p-4">
-        <h3 className="font-bold text-lg text-amber-900 mb-2 line-clamp-2">
-          {recipe.title}
-        </h3>
-        <p className="text-amber-700 text-sm mb-3 line-clamp-2">
-          {recipe.description}
-        </p>
+      <div className="flex-grow">
+        <h3 className="font-bold text-amber-900 mb-1">{recipe.title}</h3>
+        <p className="text-amber-700 text-sm line-clamp-2 mb-2">{recipe.description}</p>
 
         {/* Meta Info */}
         <div className="flex items-center justify-between text-xs text-amber-600">
