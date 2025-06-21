@@ -36,6 +36,54 @@ export type Database = {
         }
         Relationships: []
       }
+      recipes: {
+        Row: {
+          cook_time: number
+          created_at: string
+          description: string | null
+          id: string
+          image: string | null
+          ingredients: string[] | null
+          instructions: string[] | null
+          prep_time: number
+          servings: number
+          tags: string[] | null
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          cook_time?: number
+          created_at?: string
+          description?: string | null
+          id?: string
+          image?: string | null
+          ingredients?: string[] | null
+          instructions?: string[] | null
+          prep_time?: number
+          servings?: number
+          tags?: string[] | null
+          title: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          cook_time?: number
+          created_at?: string
+          description?: string | null
+          id?: string
+          image?: string | null
+          ingredients?: string[] | null
+          instructions?: string[] | null
+          prep_time?: number
+          servings?: number
+          tags?: string[] | null
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

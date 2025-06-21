@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Plus, Search, LogOut, User } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -7,24 +8,25 @@ import RecipeDetailModal from '../components/RecipeDetailModal';
 import AddRecipeModal from '../components/AddRecipeModal';
 import { Recipe } from '../types/Recipe';
 import { useAuth } from '../hooks/useAuth';
+import { useRecipes } from '../hooks/useRecipes';
 import { useNavigate } from 'react-router-dom';
 
 const Index = () => {
-  const { user, loading, signOut } = useAuth();
+  const { user, loading: authLoading, signOut } = useAuth();
+  const { recipes, loading: recipesLoading, addRecipe, updateRecipe, deleteRecipe } = useRecipes();
   const navigate = useNavigate();
   
-  // State variables for managing recipes, search term, selected recipe, and modal visibility
-  const [recipes, setRecipes] = useState<Recipe[]>([]);
+  // State variables for managing search term, selected recipe, and modal visibility
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedRecipe, setSelectedRecipe] = useState<Recipe | null>(null);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
 
   useEffect(() => {
-    if (!loading && !user) {
+    if (!authLoading && !user) {
       navigate('/auth');
     }
-  }, [user, loading, navigate]);
+  }, [user, authLoading, navigate]);
 
   const handleSignOut = async () => {
     await signOut();
@@ -43,28 +45,22 @@ const Index = () => {
     setIsDetailModalOpen(true);
   };
 
-  const handleAddRecipe = (newRecipe: Omit<Recipe, 'id'>) => {
-    const recipe: Recipe = {
-      ...newRecipe,
-      id: crypto.randomUUID(),
-    };
-    setRecipes([...recipes, recipe]);
+  const handleAddRecipe = async (newRecipe: Omit<Recipe, 'id'>) => {
+    await addRecipe(newRecipe);
     setIsAddModalOpen(false);
   };
 
-  const handleEditRecipe = (updatedRecipe: Recipe) => {
-    setRecipes(recipes.map(recipe => 
-      recipe.id === updatedRecipe.id ? updatedRecipe : recipe
-    ));
+  const handleEditRecipe = async (updatedRecipe: Recipe) => {
+    await updateRecipe(updatedRecipe);
     setIsDetailModalOpen(false);
   };
 
-  const handleDeleteRecipe = (recipeId: string) => {
-    setRecipes(recipes.filter(recipe => recipe.id !== recipeId));
+  const handleDeleteRecipe = async (recipeId: string) => {
+    await deleteRecipe(recipeId);
     setIsDetailModalOpen(false);
   };
 
-  if (loading) {
+  if (authLoading || recipesLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-cream-50 to-rose-50 flex items-center justify-center">
         <div className="text-amber-800">Loading...</div>
