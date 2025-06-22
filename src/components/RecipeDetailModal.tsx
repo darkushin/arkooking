@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { X, Clock, Users, Edit, Delete, Check, Minus, Plus, ChevronLeft, ChevronRight } from 'lucide-react';
+import { X, Clock, Users, Edit, Delete, Check, Minus, Plus, ChevronLeft, ChevronRight, ChefHat } from 'lucide-react';
 import { Recipe } from '../types/Recipe';
 import { scaleIngredient } from '@/lib/recipe-utils';
 import { Profile } from '@/hooks/useAuth';
@@ -179,6 +179,12 @@ const RecipeDetailModal = ({ recipe, user, isOpen, onClose, onEdit, onDelete }: 
             {/* Title and Meta */}
             <h1 className="text-2xl font-bold text-amber-900 mb-2">{recipe.title}</h1>
             <p className="text-amber-700 mb-4">{recipe.description}</p>
+            {recipe.user_full_name && (
+              <div className="flex items-center gap-2 mb-4 text-amber-800 text-sm">
+                <ChefHat className="w-4 h-4" />
+                <span>{recipe.user_full_name}</span>
+              </div>
+            )}
 
             <div className="flex items-center gap-4 mb-4 text-sm text-amber-600">
               <div className="flex items-center gap-1">

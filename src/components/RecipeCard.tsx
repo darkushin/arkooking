@@ -1,4 +1,4 @@
-import { Clock, Users } from 'lucide-react';
+import { Clock, Users, ChefHat } from 'lucide-react';
 import { Recipe } from '../types/Recipe';
 
 interface RecipeCardProps {
@@ -28,6 +28,12 @@ const RecipeCard = ({ recipe, onClick }: RecipeCardProps) => {
       <div className="flex-grow">
         <h3 className="font-bold text-amber-900 mb-1">{recipe.title}</h3>
         <p className="text-amber-700 text-sm line-clamp-2 mb-2">{recipe.description}</p>
+        {recipe.user_full_name && (
+          <div className="flex items-center gap-2 mb-2 text-amber-800 text-xs">
+            <ChefHat className="w-3 h-3" />
+            <span>{recipe.user_full_name}</span>
+          </div>
+        )}
 
         {/* Meta Info */}
         <div className="flex items-center justify-between text-xs text-amber-600">

@@ -21,7 +21,7 @@ export const useRecipes = () => {
     try {
       const { data, error } = await supabase
         .from('recipes')
-        .select('*')
+        .select('*, profiles(full_name)')
         .order('created_at', { ascending: false });
 
       if (error) throw error;
@@ -40,6 +40,7 @@ export const useRecipes = () => {
         instructions: recipe.instructions || [],
         visibility: (recipe as any).visibility || 'public',
         user_id: recipe.user_id,
+        user_full_name: recipe.profiles?.full_name || '',
       }));
 
       setRecipes(transformedRecipes);
@@ -101,6 +102,7 @@ export const useRecipes = () => {
         instructions: data.instructions || [],
         visibility: (data as any).visibility || 'public',
         user_id: data.user_id,
+        user_full_name: data.profiles?.full_name || '',
       };
 
       setRecipes(prev => [transformedRecipe, ...prev]);

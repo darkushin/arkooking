@@ -11,4 +11,5 @@ export interface Recipe {
   instructions: string[];
   visibility: 'public' | 'private';
   user_id: string;
+  user_full_name?: string;
 }
