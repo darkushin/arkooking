@@ -2,16 +2,18 @@ import { useState, useEffect } from 'react';
 import { X, Clock, Users, Edit, Delete, Check, Minus, Plus, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Recipe } from '../types/Recipe';
 import { scaleIngredient } from '@/lib/recipe-utils';
+import { Profile } from '@/hooks/useAuth';
 
 interface RecipeDetailModalProps {
   recipe: Recipe | null;
+  user: Profile | null;
   isOpen: boolean;
   onClose: () => void;
   onEdit: (recipe: Recipe) => void;
   onDelete: (recipeId: string) => void;
 }
 
-const RecipeDetailModal = ({ recipe, isOpen, onClose, onEdit, onDelete }: RecipeDetailModalProps) => {
+const RecipeDetailModal = ({ recipe, user, isOpen, onClose, onEdit, onDelete }: RecipeDetailModalProps) => {
   const [checkedIngredients, setCheckedIngredients] = useState<Set<number>>(new Set());
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [desiredServings, setDesiredServings] = useState(String(recipe?.servings || ''));
@@ -105,6 +107,11 @@ const RecipeDetailModal = ({ recipe, isOpen, onClose, onEdit, onDelete }: Recipe
     }
   };
 
+  const canEditOrDelete = user && recipe && (
+    (user.role === 'Admin' && recipe.visibility === 'public') ||
+    (user.role === 'Editor' && recipe.user_id === user.id)
+  );
+
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-end justify-center z-50 p-4">
       <div className="bg-white rounded-t-3xl max-w-md w-full max-h-[90vh] overflow-hidden animate-slide-up">
@@ -148,20 +155,22 @@ const RecipeDetailModal = ({ recipe, isOpen, onClose, onEdit, onDelete }: Recipe
           </button>
 
           {/* Action Buttons */}
-          <div className="absolute top-4 left-4 flex gap-2">
-            <button
-              onClick={() => onEdit(recipe)}
-              className="bg-white/90 backdrop-blur-sm rounded-full p-2 hover:bg-white transition-colors"
-            >
-              <Edit className="w-4 h-4 text-amber-700" />
-            </button>
-            <button
-              onClick={() => setShowDeleteConfirm(true)}
-              className="bg-white/90 backdrop-blur-sm rounded-full p-2 hover:bg-white transition-colors"
-            >
-              <Delete className="w-4 h-4 text-red-600" />
-            </button>
-          </div>
+          {canEditOrDelete && (
+            <div className="absolute top-4 left-4 flex gap-2">
+              <button
+                onClick={() => onEdit(recipe)}
+                className="bg-white/90 backdrop-blur-sm rounded-full p-2 hover:bg-white transition-colors"
+              >
+                <Edit className="w-4 h-4 text-amber-700" />
+              </button>
+              <button
+                onClick={() => setShowDeleteConfirm(true)}
+                className="bg-white/90 backdrop-blur-sm rounded-full p-2 hover:bg-white transition-colors"
+              >
+                <Delete className="w-4 h-4 text-red-600" />
+              </button>
+            </div>
+          )}
         </div>
 
         {/* Content */}

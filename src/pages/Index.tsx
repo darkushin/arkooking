@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import RecipeCard from '../components/RecipeCard';
 import RecipeDetailModal from '../components/RecipeDetailModal';
 import AddRecipeModal from '../components/AddRecipeModal';
-import EditRecipeModal from '../components/EditRecipeModal';
+import EditRecipeModal from '@/components/EditRecipeModal';
 import { Recipe } from '../types/Recipe';
 import { useAuth } from '../hooks/useAuth';
 import { useRecipes } from '../hooks/useRecipes';
@@ -14,7 +14,7 @@ import { categories } from '@/lib/categories';
 import Sidebar from '@/components/Sidebar';
 
 const Index = () => {
-  const { user, loading: authLoading, signOut } = useAuth();
+  const { user, loading: authLoading, signOut, isGuest, exitGuestMode } = useAuth();
   const { recipes, loading: recipesLoading, addRecipe, updateRecipe, deleteRecipe } = useRecipes();
   const navigate = useNavigate();
   
@@ -33,7 +33,11 @@ const Index = () => {
   }, [user, authLoading, navigate]);
 
   const handleSignOut = async () => {
-    await signOut();
+    if (isGuest) {
+      exitGuestMode();
+    } else {
+      await signOut();
+    }
     navigate('/auth');
   };
 
@@ -53,7 +57,7 @@ const Index = () => {
 
   // Only show public recipes or private recipes owned by the current user
   const visibleRecipes = recipes.filter(
-    recipe => recipe.visibility === 'public' || recipe.user_id === user.id
+    recipe => recipe.visibility === 'public' || (user && recipe.user_id === user.id)
   );
 
   const recipesInCategory = selectedCategory
@@ -69,8 +73,9 @@ const Index = () => {
     setIsDetailModalOpen(true);
   };
 
-  const handleAddRecipe = async (newRecipe: Omit<Recipe, 'id'>) => {
-    await addRecipe(newRecipe);
+  const handleAddRecipe = async (newRecipe: Omit<Recipe, 'id' | 'user_id'>) => {
+    if (!user) return;
+    await addRecipe(newRecipe, user.role);
     setIsAddModalOpen(false);
   };
 
@@ -100,6 +105,8 @@ const Index = () => {
     );
   }
 
+  // This check is important. It ensures that we don't render the main content
+  // for a moment before the redirect useEffect kicks in.
   if (!user) {
     return null;
   }
@@ -114,14 +121,25 @@ const Index = () => {
           </div>
           <h1 className="text-4xl font-dancing-script text-amber-900">arkooking</h1>
           <div className="absolute right-4">
-            <Button
-              onClick={() => setIsSidebarOpen(true)}
-              variant="ghost"
-              size="icon"
-              className="text-amber-700 hover:text-amber-800"
-            >
-              <User className="w-5 h-5" />
-            </Button>
+            {isGuest ? (
+              <Button
+                onClick={() => navigate('/auth')}
+                variant="ghost"
+                size="sm"
+                className="text-amber-700 hover:text-amber-800"
+              >
+                Sign In
+              </Button>
+            ) : (
+              <Button
+                onClick={() => setIsSidebarOpen(true)}
+                variant="ghost"
+                size="icon"
+                className="text-amber-700 hover:text-amber-800"
+              >
+                <User className="w-5 h-5" />
+              </Button>
+            )}
           </div>
         </div>
       </header>
@@ -156,13 +174,15 @@ const Index = () => {
                 <div className="text-6xl mb-4">🍳</div>
                 <h3 className="text-lg font-medium text-amber-800 mb-2">No recipes in {selectedCategory}</h3>
                 <p className="text-amber-600 mb-6">Want to add one?</p>
-                <Button
-                  onClick={() => setIsAddModalOpen(true)}
-                  className="bg-amber-600 hover:bg-amber-700 text-white"
-                >
-                  <Plus className="w-4 h-4 mr-2" />
-                  Add Recipe
-                </Button>
+                {(user.role === 'Editor' || user.role === 'Admin') && (
+                  <Button
+                    onClick={() => setIsAddModalOpen(true)}
+                    className="bg-amber-600 hover:bg-amber-700 text-white"
+                  >
+                    <Plus className="w-4 h-4 mr-2" />
+                    Add Recipe
+                  </Button>
+                )}
               </div>
             ) : (
               <div className="space-y-4">
@@ -205,13 +225,15 @@ const Index = () => {
                     <div className="text-6xl mb-4">🍳</div>
                     <h3 className="text-lg font-medium text-amber-800 mb-2">No recipes found</h3>
                     <p className="text-amber-600 mb-6">Try a different search or add a new recipe!</p>
-                    <Button
-                      onClick={() => setIsAddModalOpen(true)}
-                      className="bg-amber-600 hover:bg-amber-700 text-white"
-                    >
-                      <Plus className="w-4 h-4 mr-2" />
-                      Add Recipe
-                    </Button>
+                    {(user.role === 'Editor' || user.role === 'Admin') && (
+                      <Button
+                        onClick={() => setIsAddModalOpen(true)}
+                        className="bg-amber-600 hover:bg-amber-700 text-white"
+                      >
+                        <Plus className="w-4 h-4 mr-2" />
+                        Add Recipe
+                      </Button>
+                    )}
                   </div>
                 ) : (
                   <div className="space-y-4">
@@ -248,7 +270,7 @@ const Index = () => {
       </main>
 
       {/* Floating Add Button */}
-      {(selectedCategory === null || filteredRecipes.length > 0) && (
+      {user && (user.role === 'Editor' || user.role === 'Admin') && (selectedCategory === null || filteredRecipes.length > 0) && (
         <Button
           onClick={() => setIsAddModalOpen(true)}
           className="fixed bottom-6 right-6 w-14 h-14 rounded-full bg-amber-600 hover:bg-amber-700 text-white shadow-lg"
@@ -261,18 +283,18 @@ const Index = () => {
       {/* Modals */}
       <RecipeDetailModal
         recipe={selectedRecipe}
+        user={user}
         isOpen={isDetailModalOpen}
         onClose={() => setIsDetailModalOpen(false)}
         onEdit={openEditModal}
         onDelete={handleDeleteRecipe}
       />
-
       <AddRecipeModal
         isOpen={isAddModalOpen}
-        onClose={() => setIsAddModalOpen(false)}
+        onClose={() => setIsAddModalOpen(p => !p)}
         onAdd={handleAddRecipe}
+        userRole={user?.role}
       />
-
       <EditRecipeModal
         recipe={selectedRecipe}
         isOpen={isEditModalOpen}

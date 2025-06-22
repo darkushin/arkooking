@@ -1,16 +1,18 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { X, Plus, Camera, Trash2 } from 'lucide-react';
 import { Recipe } from '../types/Recipe';
 import { commonTags } from '@/lib/categories';
 import { Switch } from '@/components/ui/switch';
+import { UserRole } from '@/hooks/useAuth';
 
 interface AddRecipeModalProps {
   isOpen: boolean;
   onClose: () => void;
   onAdd: (recipe: Omit<Recipe, 'id' | 'user_id'>) => void;
+  userRole: UserRole | undefined;
 }
 
-const AddRecipeModal = ({ isOpen, onClose, onAdd }: AddRecipeModalProps) => {
+const AddRecipeModal = ({ isOpen, onClose, onAdd, userRole }: AddRecipeModalProps) => {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [images, setImages] = useState<string[]>([]);
@@ -21,9 +23,26 @@ const AddRecipeModal = ({ isOpen, onClose, onAdd }: AddRecipeModalProps) => {
   const [newTag, setNewTag] = useState('');
   const [ingredients, setIngredients] = useState<string[]>(['']);
   const [instructions, setInstructions] = useState<string[]>(['']);
-  const [isPrivate, setIsPrivate] = useState(false);
+  const [isPrivate, setIsPrivate] = useState(userRole === 'Editor');
   
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (isOpen) {
+      // Reset form when modal opens
+      setTitle('');
+      setDescription('');
+      setImages([]);
+      setCookTime(30);
+      setPrepTime(15);
+      setServings(4);
+      setTags([]);
+      setNewTag('');
+      setIngredients(['']);
+      setInstructions(['']);
+      setIsPrivate(userRole === 'Editor');
+    }
+  }, [isOpen, userRole]);
 
   if (!isOpen) return null;
 

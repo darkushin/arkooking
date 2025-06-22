@@ -45,7 +45,7 @@ const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
             </div>
             <div>
               <p className="text-sm font-medium text-amber-900 truncate">{user.email}</p>
-              <p className="text-xs text-amber-600">Welcome back!</p>
+              <p className="text-xs text-amber-600 capitalize">{user.role} Account</p>
             </div>
           </div>
           

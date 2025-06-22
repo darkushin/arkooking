@@ -5,6 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useNavigate } from 'react-router-dom';
 import { User } from '@supabase/supabase-js';
+import { useAuth } from '@/hooks/useAuth';
 
 type AuthView = 'login' | 'signup' | 'forgot_password';
 
@@ -17,17 +18,19 @@ const Auth = () => {
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
   const navigate = useNavigate();
+  const { user, enterGuestMode, isGuest } = useAuth();
 
   useEffect(() => {
-    // Check if user is already logged in
-    const getSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session) {
-        navigate('/');
-      }
-    };
-    getSession();
-  }, [navigate]);
+    // Redirect if user is logged in or is a guest
+    if (user || isGuest) {
+      navigate('/');
+    }
+  }, [user, isGuest, navigate]);
+
+  const handleGuestLogin = () => {
+    enterGuestMode();
+    navigate('/');
+  };
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -225,7 +228,7 @@ const Auth = () => {
               </Button>
             </form>
 
-            <div className="mt-6 text-center">
+            <div className="mt-4 text-center">
               <button
                 onClick={() => {
                   setView(isLogin ? 'signup' : 'login');
@@ -238,6 +241,16 @@ const Auth = () => {
               >
                 {isLogin ? "Don't have an account? Sign up" : 'Already have an account? Sign in'}
               </button>
+            </div>
+
+            <div className="mt-6 text-center pt-4 border-t border-amber-200">
+               <Button
+                onClick={handleGuestLogin}
+                variant="ghost"
+                className="text-amber-700 hover:text-amber-800"
+              >
+                Continue as Guest
+              </Button>
             </div>
           </>
         )

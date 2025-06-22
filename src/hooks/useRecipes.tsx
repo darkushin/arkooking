@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Recipe } from '../types/Recipe';
-import { useAuth } from './useAuth';
+import { useAuth, UserRole } from './useAuth';
 import { useToast } from '@/hooks/use-toast';
 
 export const useRecipes = () => {
@@ -56,8 +56,15 @@ export const useRecipes = () => {
   };
 
   // Add new recipe
-  const addRecipe = async (newRecipe: Omit<Recipe, 'id'>) => {
+  const addRecipe = async (newRecipe: Omit<Recipe, 'id'>, role: UserRole) => {
     if (!user) return;
+    
+    let visibility = newRecipe.visibility;
+    if (role === 'Editor') {
+      visibility = 'private';
+    } else if (role === 'Admin') {
+      visibility = 'public';
+    }
 
     try {
       const { data, error } = await supabase
@@ -73,7 +80,7 @@ export const useRecipes = () => {
           tags: newRecipe.tags,
           ingredients: newRecipe.ingredients,
           instructions: newRecipe.instructions,
-          visibility: newRecipe.visibility || 'public',
+          visibility: visibility,
         })
         .select()
         .single();
