@@ -261,7 +261,7 @@ const Auth = () => {
     <div className="min-h-screen bg-gradient-to-br from-cream-50 to-rose-50 flex items-center justify-center p-4">
       <div className="w-full max-w-md bg-white/90 backdrop-blur-sm rounded-2xl shadow-lg p-8">
         <div className="text-center mb-8">
-          <h1 className="text-4xl font-dancing-script text-amber-900">arkooking</h1>
+          <h1 className="text-6xl font-dancing-script text-amber-900">arkooking</h1>
         </div>
         {renderView()}
       </div>

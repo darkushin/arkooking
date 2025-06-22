@@ -129,7 +129,7 @@ const Index = () => {
               </Button>
             )}
           </div>
-          <h1 className="text-4xl font-dancing-script text-amber-900">arkooking</h1>
+          <h1 className="text-6xl font-dancing-script text-amber-900">arkooking</h1>
           <div className="absolute right-4">
             {isGuest ? (
               <Button
