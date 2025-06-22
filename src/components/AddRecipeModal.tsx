@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { X, Plus, Camera, Trash2 } from 'lucide-react';
+import { X, Plus, Camera, Trash2, Loader2 } from 'lucide-react';
 import { Recipe } from '../types/Recipe';
 import { commonTags } from '@/lib/categories';
 import { Switch } from '@/components/ui/switch';
@@ -12,6 +12,8 @@ interface AddRecipeModalProps {
   userRole: UserRole | undefined;
   initialTag?: string;
 }
+
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBob2VoZmpkZmJ5Z3VzYmVmYXNkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTA0OTczNjAsImV4cCI6MjA2NjA3MzM2MH0.InHePa3zRmkn8tSq7BqHrXTpxJfGaO4a1Xgh9LdY58o';
 
 const AddRecipeModal = ({ isOpen, onClose, onAdd, userRole, initialTag }: AddRecipeModalProps) => {
   const [title, setTitle] = useState('');
@@ -27,6 +29,9 @@ const AddRecipeModal = ({ isOpen, onClose, onAdd, userRole, initialTag }: AddRec
   const [isPrivate, setIsPrivate] = useState(userRole === 'Editor');
   const [link, setLink] = useState('');
   const [tagError, setTagError] = useState('');
+  const [autoExtract, setAutoExtract] = useState(false);
+  const [extractLoading, setExtractLoading] = useState(false);
+  const [extractError, setExtractError] = useState('');
   
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -113,6 +118,42 @@ const AddRecipeModal = ({ isOpen, onClose, onAdd, userRole, initialTag }: AddRec
   const removeInstruction = (index: number) => {
     if (instructions.length > 1) {
       setInstructions(prev => prev.filter((_, i) => i !== index));
+    }
+  };
+
+  const handleAutoExtract = async () => {
+    if (!link.trim()) {
+      setExtractError('Please enter a valid link first.');
+      setAutoExtract(false);
+      return;
+    }
+    setExtractError('');
+    setExtractLoading(true);
+    try {
+      const res = await fetch('https://phoehfjdfbygusbefasd.functions.supabase.co/extract-recipe', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'apikey': SUPABASE_ANON_KEY,
+          'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+        },
+        body: JSON.stringify({ link: link.trim() }),
+      });
+      if (!res.ok) throw new Error('Extraction failed');
+      const data = await res.json();
+      setTitle(data.title || '');
+      setDescription(data.description || '');
+      setIngredients(Array.isArray(data.ingredients) ? data.ingredients : []);
+      setInstructions(Array.isArray(data.instructions) ? data.instructions : []);
+      setCookTime(Number(data.cookTime) || 30);
+      setPrepTime(Number(data.prepTime) || 15);
+      setServings(Number(data.servings) || 4);
+      setTags(Array.isArray(data.tags) ? data.tags : []);
+    } catch (err) {
+      setExtractError('Failed to extract recipe. Please check the link or try again.');
+    } finally {
+      setExtractLoading(false);
+      setAutoExtract(false);
     }
   };
 
@@ -216,6 +257,17 @@ const AddRecipeModal = ({ isOpen, onClose, onAdd, userRole, initialTag }: AddRec
                 placeholder="https://example.com/original-recipe"
                 className="w-full p-3 border border-amber-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-300"
               />
+              <div className="flex items-center gap-3 mt-2 mb-2">
+                <Switch id="auto-extract-switch" checked={autoExtract} onCheckedChange={(checked) => {
+                  setAutoExtract(checked);
+                  if (checked) handleAutoExtract();
+                }} />
+                <label htmlFor="auto-extract-switch" className="text-sm text-amber-900 select-none cursor-pointer">
+                  Auto-extract from link
+                </label>
+                {extractLoading && <Loader2 className="animate-spin w-4 h-4 text-amber-700" />}
+              </div>
+              {extractError && <div className="mb-2 text-xs text-red-600 font-medium">{extractError}</div>}
             </div>
 
             <div>
