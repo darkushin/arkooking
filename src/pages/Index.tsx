@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Plus, Search, LogOut, User, ChevronLeft } from 'lucide-react';
+import { Plus, Search, LogOut, User, ChevronLeft, ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import RecipeCard from '../components/RecipeCard';
@@ -117,13 +117,23 @@ const Index = () => {
       <header className="bg-white/80 backdrop-blur-sm shadow-sm sticky top-0 z-40">
         <div className="max-w-md mx-auto px-4 py-4 flex items-center justify-center relative">
           <div className="absolute left-4">
-            {/* Placeholder for potential left-side icon */}
+            {isGuest && (
+              <Button
+                onClick={() => { exitGuestMode(); navigate('/auth'); }}
+                variant="ghost"
+                size="icon"
+                className="text-amber-700 hover:text-amber-800"
+                aria-label="Back to Auth"
+              >
+                <ArrowLeft className="w-5 h-5" />
+              </Button>
+            )}
           </div>
           <h1 className="text-4xl font-dancing-script text-amber-900">arkooking</h1>
           <div className="absolute right-4">
             {isGuest ? (
               <Button
-                onClick={() => navigate('/auth')}
+                onClick={() => { exitGuestMode(); navigate('/auth'); }}
                 variant="ghost"
                 size="sm"
                 className="text-amber-700 hover:text-amber-800"
