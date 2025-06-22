@@ -19,12 +19,14 @@ const RecipeDetailModal = ({ recipe, user, isOpen, onClose, onEdit, onDelete }: 
   const [desiredServings, setDesiredServings] = useState(String(recipe?.servings || ''));
   const [adjustedIngredients, setAdjustedIngredients] = useState<string[]>([]);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const [checkedInstructions, setCheckedInstructions] = useState<Set<number>>(new Set());
 
   useEffect(() => {
     if (recipe) {
       setDesiredServings(String(recipe.servings));
       setCheckedIngredients(new Set());
       setCurrentImageIndex(0);
+      setCheckedInstructions(new Set());
     }
   }, [recipe]);
 
@@ -105,6 +107,16 @@ const RecipeDetailModal = ({ recipe, user, isOpen, onClose, onEdit, onDelete }: 
     if (recipe && recipe.images.length > 1) {
       setCurrentImageIndex((prev) => (prev - 1 + recipe.images.length) % recipe.images.length);
     }
+  };
+
+  const toggleInstruction = (index: number) => {
+    const newChecked = new Set(checkedInstructions);
+    if (newChecked.has(index)) {
+      newChecked.delete(index);
+    } else {
+      newChecked.add(index);
+    }
+    setCheckedInstructions(newChecked);
   };
 
   const canEditOrDelete = user && recipe && (
@@ -282,11 +294,15 @@ const RecipeDetailModal = ({ recipe, user, isOpen, onClose, onEdit, onDelete }: 
             <h2 className="text-xl font-bold text-amber-900 mb-3">Instructions</h2>
             <div className="space-y-4">
               {recipe.instructions.map((instruction, index) => (
-                <div key={index} className="flex gap-3">
+                <div
+                  key={index}
+                  className={`flex gap-3 cursor-pointer select-none transition-colors ${checkedInstructions.has(index) ? 'bg-green-50' : ''}`}
+                  onClick={() => toggleInstruction(index)}
+                >
                   <div className="flex-shrink-0 w-8 h-8 bg-gradient-to-r from-rose-400 to-orange-400 text-white rounded-full flex items-center justify-center text-sm font-bold">
                     {index + 1}
                   </div>
-                  <p className="text-amber-800 leading-relaxed pt-1">{instruction}</p>
+                  <p className={`text-amber-800 leading-relaxed pt-1 ${checkedInstructions.has(index) ? 'line-through opacity-60' : ''}`}>{instruction}</p>
                 </div>
               ))}
             </div>
