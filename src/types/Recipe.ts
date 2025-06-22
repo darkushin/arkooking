@@ -12,4 +12,5 @@ export interface Recipe {
   visibility: 'public' | 'private';
   user_id: string;
   user_full_name?: string;
+  link: string;
 }

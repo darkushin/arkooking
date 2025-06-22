@@ -23,6 +23,7 @@ const EditRecipeModal = ({ isOpen, onClose, onEdit, recipe: initialRecipe }: Edi
   const [ingredients, setIngredients] = useState<string[]>(['']);
   const [instructions, setInstructions] = useState<string[]>(['']);
   const [isPrivate, setIsPrivate] = useState(false);
+  const [link, setLink] = useState('');
   
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -38,6 +39,7 @@ const EditRecipeModal = ({ isOpen, onClose, onEdit, recipe: initialRecipe }: Edi
       setIngredients(initialRecipe.ingredients.length > 0 ? initialRecipe.ingredients : ['']);
       setInstructions(initialRecipe.instructions.length > 0 ? initialRecipe.instructions : ['']);
       setIsPrivate(initialRecipe.visibility === 'private');
+      setLink(initialRecipe.link || '');
     }
   }, [initialRecipe]);
 
@@ -137,6 +139,7 @@ const EditRecipeModal = ({ isOpen, onClose, onEdit, recipe: initialRecipe }: Edi
       ingredients: ingredients.filter(ing => ing.trim()),
       instructions: instructions.filter(inst => inst.trim()),
       visibility: isPrivate ? 'private' : 'public',
+      link: link.trim(),
     };
 
     onEdit(editedRecipe);
@@ -220,6 +223,14 @@ const EditRecipeModal = ({ isOpen, onClose, onEdit, recipe: initialRecipe }: Edi
                 placeholder="Enter recipe title"
                 className="w-full p-3 border border-amber-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-300"
                 required
+              />
+              <label className="block text-sm font-medium text-amber-900 mb-2 mt-4">Original Recipe Link</label>
+              <input
+                type="url"
+                value={link}
+                onChange={(e) => setLink(e.target.value)}
+                placeholder="https://example.com/original-recipe"
+                className="w-full p-3 border border-amber-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-300"
               />
             </div>
 

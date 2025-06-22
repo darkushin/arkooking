@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { X, Clock, Users, Edit, Delete, Check, Minus, Plus, ChevronLeft, ChevronRight, ChefHat } from 'lucide-react';
+import { X, Clock, Users, Edit, Delete, Check, Minus, Plus, ChevronLeft, ChevronRight, ChefHat, Link as LinkIcon } from 'lucide-react';
 import { Recipe } from '../types/Recipe';
 import { scaleIngredient } from '@/lib/recipe-utils';
 import { Profile } from '@/hooks/useAuth';
@@ -183,6 +183,19 @@ const RecipeDetailModal = ({ recipe, user, isOpen, onClose, onEdit, onDelete }: 
               <div className="flex items-center gap-2 mb-4 text-amber-800 text-sm">
                 <ChefHat className="w-4 h-4" />
                 <span>{recipe.user_full_name}</span>
+              </div>
+            )}
+            {recipe.link && (
+              <div className="flex items-center gap-2 mb-4 text-amber-700 text-sm">
+                <LinkIcon className="w-4 h-4" />
+                <a
+                  href={recipe.link}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="underline hover:text-amber-900 break-all"
+                >
+                  {recipe.link}
+                </a>
               </div>
             )}
 

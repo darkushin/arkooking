@@ -1,4 +1,4 @@
-import { Clock, Users, ChefHat } from 'lucide-react';
+import { Clock, Users, ChefHat, Link as LinkIcon } from 'lucide-react';
 import { Recipe } from '../types/Recipe';
 
 interface RecipeCardProps {
@@ -32,6 +32,19 @@ const RecipeCard = ({ recipe, onClick }: RecipeCardProps) => {
           <div className="flex items-center gap-2 mb-2 text-amber-800 text-xs">
             <ChefHat className="w-3 h-3" />
             <span>{recipe.user_full_name}</span>
+          </div>
+        )}
+        {recipe.link && (
+          <div className="flex items-center gap-2 mb-2 text-amber-700 text-xs">
+            <LinkIcon className="w-3 h-3" />
+            <a
+              href={recipe.link}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="underline hover:text-amber-900 break-all"
+            >
+              {recipe.link}
+            </a>
           </div>
         )}
 

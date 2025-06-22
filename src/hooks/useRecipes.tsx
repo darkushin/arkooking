@@ -41,6 +41,7 @@ export const useRecipes = () => {
         visibility: (recipe as any).visibility || 'public',
         user_id: recipe.user_id,
         user_full_name: recipe.profiles?.full_name || '',
+        link: recipe.link || '',
       }));
 
       setRecipes(transformedRecipes);
@@ -82,6 +83,7 @@ export const useRecipes = () => {
           ingredients: newRecipe.ingredients,
           instructions: newRecipe.instructions,
           visibility: visibility,
+          link: newRecipe.link,
         })
         .select()
         .single();
@@ -103,6 +105,7 @@ export const useRecipes = () => {
         visibility: (data as any).visibility || 'public',
         user_id: data.user_id,
         user_full_name: data.profiles?.full_name || '',
+        link: data.link || '',
       };
 
       setRecipes(prev => [transformedRecipe, ...prev]);
@@ -139,6 +142,7 @@ export const useRecipes = () => {
           ingredients: updatedRecipe.ingredients,
           instructions: updatedRecipe.instructions,
           visibility: updatedRecipe.visibility,
+          link: updatedRecipe.link,
           updated_at: new Date().toISOString()
         })
         .eq('id', updatedRecipe.id);

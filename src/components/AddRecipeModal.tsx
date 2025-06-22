@@ -24,6 +24,7 @@ const AddRecipeModal = ({ isOpen, onClose, onAdd, userRole }: AddRecipeModalProp
   const [ingredients, setIngredients] = useState<string[]>(['']);
   const [instructions, setInstructions] = useState<string[]>(['']);
   const [isPrivate, setIsPrivate] = useState(userRole === 'Editor');
+  const [link, setLink] = useState('');
   
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -41,6 +42,7 @@ const AddRecipeModal = ({ isOpen, onClose, onAdd, userRole }: AddRecipeModalProp
       setIngredients(['']);
       setInstructions(['']);
       setIsPrivate(userRole === 'Editor');
+      setLink('');
     }
   }, [isOpen, userRole]);
 
@@ -128,6 +130,7 @@ const AddRecipeModal = ({ isOpen, onClose, onAdd, userRole }: AddRecipeModalProp
       ingredients: ingredients.filter(ing => ing.trim()),
       instructions: instructions.filter(inst => inst.trim()),
       visibility: isPrivate ? 'private' : 'public',
+      link: link.trim(),
     };
 
     onAdd(recipe);
@@ -196,6 +199,14 @@ const AddRecipeModal = ({ isOpen, onClose, onAdd, userRole }: AddRecipeModalProp
                 placeholder="Enter recipe title"
                 className="w-full p-3 border border-amber-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-300"
                 required
+              />
+              <label className="block text-sm font-medium text-amber-900 mb-2 mt-4">Original Recipe Link</label>
+              <input
+                type="url"
+                value={link}
+                onChange={(e) => setLink(e.target.value)}
+                placeholder="https://example.com/original-recipe"
+                className="w-full p-3 border border-amber-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-300"
               />
             </div>
 
