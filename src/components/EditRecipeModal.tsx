@@ -24,6 +24,7 @@ const EditRecipeModal = ({ isOpen, onClose, onEdit, recipe: initialRecipe }: Edi
   const [instructions, setInstructions] = useState<string[]>(['']);
   const [isPrivate, setIsPrivate] = useState(false);
   const [link, setLink] = useState('');
+  const [tagError, setTagError] = useState('');
   
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -126,6 +127,12 @@ const EditRecipeModal = ({ isOpen, onClose, onEdit, recipe: initialRecipe }: Edi
     e.preventDefault();
     
     if (!title.trim() || !initialRecipe) return;
+    if (tags.length === 0) {
+      setTagError('Please select at least one category for your recipe.');
+      return;
+    } else {
+      setTagError('');
+    }
 
     const editedRecipe: Recipe = {
       ...initialRecipe,
@@ -419,6 +426,9 @@ const EditRecipeModal = ({ isOpen, onClose, onEdit, recipe: initialRecipe }: Edi
             </div>
 
             {/* Submit Button */}
+            {tagError && (
+              <div className="mb-4 text-xs text-red-600 font-medium text-center">{tagError}</div>
+            )}
             <div className="pt-4 border-t border-amber-100">
               <button
                 type="submit"

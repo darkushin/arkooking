@@ -304,6 +304,7 @@ const Index = () => {
         onClose={() => setIsAddModalOpen(p => !p)}
         onAdd={handleAddRecipe}
         userRole={user?.role}
+        initialTag={selectedCategory}
       />
       <EditRecipeModal
         recipe={selectedRecipe}

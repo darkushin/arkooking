@@ -10,9 +10,10 @@ interface AddRecipeModalProps {
   onClose: () => void;
   onAdd: (recipe: Omit<Recipe, 'id' | 'user_id'>) => void;
   userRole: UserRole | undefined;
+  initialTag?: string;
 }
 
-const AddRecipeModal = ({ isOpen, onClose, onAdd, userRole }: AddRecipeModalProps) => {
+const AddRecipeModal = ({ isOpen, onClose, onAdd, userRole, initialTag }: AddRecipeModalProps) => {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [images, setImages] = useState<string[]>([]);
@@ -25,6 +26,7 @@ const AddRecipeModal = ({ isOpen, onClose, onAdd, userRole }: AddRecipeModalProp
   const [instructions, setInstructions] = useState<string[]>(['']);
   const [isPrivate, setIsPrivate] = useState(userRole === 'Editor');
   const [link, setLink] = useState('');
+  const [tagError, setTagError] = useState('');
   
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -37,14 +39,14 @@ const AddRecipeModal = ({ isOpen, onClose, onAdd, userRole }: AddRecipeModalProp
       setCookTime(30);
       setPrepTime(15);
       setServings(4);
-      setTags([]);
+      setTags(initialTag ? [initialTag] : []);
       setNewTag('');
       setIngredients(['']);
       setInstructions(['']);
       setIsPrivate(userRole === 'Editor');
       setLink('');
     }
-  }, [isOpen, userRole]);
+  }, [isOpen, userRole, initialTag]);
 
   if (!isOpen) return null;
 
@@ -118,6 +120,12 @@ const AddRecipeModal = ({ isOpen, onClose, onAdd, userRole }: AddRecipeModalProp
     e.preventDefault();
     
     if (!title.trim()) return;
+    if (tags.length === 0) {
+      setTagError('Please select at least one category for your recipe.');
+      return;
+    } else {
+      setTagError('');
+    }
 
     const recipe: Omit<Recipe, 'id' | 'user_id'> = {
       title: title.trim(),
@@ -362,6 +370,9 @@ const AddRecipeModal = ({ isOpen, onClose, onAdd, userRole }: AddRecipeModalProp
             </div>
 
             {/* Submit Button */}
+            {tagError && (
+              <div className="mb-4 text-xs text-red-600 font-medium text-center">{tagError}</div>
+            )}
             <button
               type="submit"
               disabled={!title.trim()}
