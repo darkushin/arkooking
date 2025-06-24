@@ -13,6 +13,54 @@ import { useNavigate } from 'react-router-dom';
 import { categories } from '@/lib/categories';
 import Sidebar from '@/components/Sidebar';
 
+
+const getInitialFormState = (initialTag, userRole) => {
+  const saved = localStorage.getItem('addRecipeFormState');
+  if (saved) {
+    try {
+      return JSON.parse(saved);
+    } catch {}
+  }
+  return {
+    title: '',
+    description: '',
+    images: [],
+    cookTime: 30,
+    prepTime: 15,
+    servings: 4,
+    tags: initialTag ? [initialTag] : [],
+    newTag: '',
+    ingredients: [''],
+    instructions: [''],
+    isPrivate: userRole === 'Editor',
+    link: ''
+  };
+};
+
+const getInitialEditFormState = (recipe) => {
+  if (!recipe) return null;
+  const saved = localStorage.getItem(`editRecipeFormState_${recipe.id}`);
+  if (saved) {
+    try {
+      return JSON.parse(saved);
+    } catch {}
+  }
+  return {
+    title: recipe.title,
+    description: recipe.description || '',
+    images: recipe.images || [],
+    cookTime: recipe.cookTime,
+    prepTime: recipe.prepTime,
+    servings: recipe.servings,
+    tags: recipe.tags,
+    newTag: '',
+    ingredients: recipe.ingredients.length > 0 ? recipe.ingredients : [''],
+    instructions: recipe.instructions.length > 0 ? recipe.instructions : [''],
+    isPrivate: recipe.visibility === 'private',
+    link: recipe.link || ''
+  };
+};
+
 const Index = () => {
   const { user, loading: authLoading, signOut, isGuest, exitGuestMode } = useAuth();
   const { recipes, loading: recipesLoading, addRecipe, updateRecipe, deleteRecipe } = useRecipes();
@@ -21,16 +69,61 @@ const Index = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedRecipe, setSelectedRecipe] = useState<Recipe | null>(null);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
-  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [isAddModalOpen, setIsAddModalOpen] = useState(() => {
+    const stored = localStorage.getItem('isAddModalOpen');
+    return stored === 'true';
+  });
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [addRecipeForm, setAddRecipeForm] = useState(() => getInitialFormState(null, null));
+  const [editRecipeForm, setEditRecipeForm] = useState(null);
 
   useEffect(() => {
     if (!authLoading && !user) {
       navigate('/auth');
     }
   }, [user, authLoading, navigate]);
+
+  useEffect(() => {
+    localStorage.setItem('isAddModalOpen', isAddModalOpen ? 'true' : 'false');
+  }, [isAddModalOpen]);
+
+  useEffect(() => {
+    if (isAddModalOpen) {
+      localStorage.setItem('addRecipeFormState', JSON.stringify(addRecipeForm));
+    }
+  }, [addRecipeForm, isAddModalOpen]);
+
+  useEffect(() => {
+    if (isAddModalOpen) {
+      const saved = localStorage.getItem('addRecipeFormState');
+      if (saved) {
+        try {
+          setAddRecipeForm(JSON.parse(saved));
+        } catch {}
+      }
+    }
+  }, [isAddModalOpen]);
+
+  useEffect(() => {
+    if (isEditModalOpen && selectedRecipe && editRecipeForm) {
+      localStorage.setItem(`editRecipeFormState_${selectedRecipe.id}`, JSON.stringify(editRecipeForm));
+    }
+  }, [editRecipeForm, isEditModalOpen, selectedRecipe]);
+
+  useEffect(() => {
+    if (isEditModalOpen && selectedRecipe) {
+      const saved = localStorage.getItem(`editRecipeFormState_${selectedRecipe.id}`);
+      if (saved) {
+        try {
+          setEditRecipeForm(JSON.parse(saved));
+        } catch {}
+      } else {
+        setEditRecipeForm(getInitialEditFormState(selectedRecipe));
+      }
+    }
+  }, [isEditModalOpen, selectedRecipe]);
 
   const handleSignOut = async () => {
     if (isGuest) {
@@ -73,15 +166,24 @@ const Index = () => {
     setIsDetailModalOpen(true);
   };
 
-  const handleAddRecipe = async (newRecipe: Omit<Recipe, 'id' | 'user_id'>) => {
+  const handleOpenAddModal = () => {
+    setAddRecipeForm(getInitialFormState(selectedCategory, user?.role));
+    setIsAddModalOpen(true);
+    localStorage.setItem('isAddModalOpen', 'true');
+  };
+
+  const handleAddRecipe = async (newRecipe) => {
     if (!user) return;
     await addRecipe(newRecipe, user.role);
     setIsAddModalOpen(false);
+    localStorage.setItem('isAddModalOpen', 'false');
+    localStorage.removeItem('addRecipeFormState');
   };
 
   const openEditModal = (recipe: Recipe) => {
     setSelectedRecipe(recipe);
     setIsDetailModalOpen(false);
+    setEditRecipeForm(getInitialEditFormState(recipe));
     setIsEditModalOpen(true);
   };
 
@@ -90,6 +192,9 @@ const Index = () => {
     setIsEditModalOpen(false);
     setSelectedRecipe(updatedRecipe);
     setIsDetailModalOpen(true);
+    if (updatedRecipe.id) {
+      localStorage.removeItem(`editRecipeFormState_${updatedRecipe.id}`);
+    }
   };
 
   const handleDeleteRecipe = async (recipeId: string) => {
@@ -186,7 +291,7 @@ const Index = () => {
                 <p className="text-amber-600 mb-6">Want to add one?</p>
                 {(user.role === 'Editor' || user.role === 'Admin') && (
                   <Button
-                    onClick={() => setIsAddModalOpen(true)}
+                    onClick={() => handleOpenAddModal()}
                     className="bg-amber-600 hover:bg-amber-700 text-white"
                   >
                     <Plus className="w-4 h-4 mr-2" />
@@ -237,7 +342,7 @@ const Index = () => {
                     <p className="text-amber-600 mb-6">Try a different search or add a new recipe!</p>
                     {(user.role === 'Editor' || user.role === 'Admin') && (
                       <Button
-                        onClick={() => setIsAddModalOpen(true)}
+                        onClick={() => handleOpenAddModal()}
                         className="bg-amber-600 hover:bg-amber-700 text-white"
                       >
                         <Plus className="w-4 h-4 mr-2" />
@@ -282,7 +387,7 @@ const Index = () => {
       {/* Floating Add Button */}
       {user && (user.role === 'Editor' || user.role === 'Admin') && (selectedCategory === null || filteredRecipes.length > 0) && (
         <Button
-          onClick={() => setIsAddModalOpen(true)}
+          onClick={() => handleOpenAddModal()}
           className="fixed bottom-6 right-6 w-14 h-14 rounded-full bg-amber-600 hover:bg-amber-700 text-white shadow-lg"
           size="icon"
         >
@@ -301,16 +406,30 @@ const Index = () => {
       />
       <AddRecipeModal
         isOpen={isAddModalOpen}
-        onClose={() => setIsAddModalOpen(p => !p)}
+        onClose={() => {
+          setIsAddModalOpen(false);
+          localStorage.setItem('isAddModalOpen', 'false');
+          localStorage.removeItem('addRecipeFormState');
+        }}
         onAdd={handleAddRecipe}
         userRole={user?.role}
         initialTag={selectedCategory}
+        isAddModalOpen={isAddModalOpen}
+        form={addRecipeForm}
+        setForm={setAddRecipeForm}
       />
       <EditRecipeModal
         recipe={selectedRecipe}
         isOpen={isEditModalOpen}
-        onClose={() => setIsEditModalOpen(false)}
+        onClose={() => {
+          setIsEditModalOpen(false);
+          if (selectedRecipe?.id) {
+            localStorage.removeItem(`editRecipeFormState_${selectedRecipe.id}`);
+          }
+        }}
         onEdit={handleUpdateRecipe}
+        form={editRecipeForm}
+        setForm={setEditRecipeForm}
       />
       <Sidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
     </div>
