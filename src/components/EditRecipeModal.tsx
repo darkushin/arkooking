@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef } from 'react';
 import { X, Plus, Camera, Trash2, Loader2 } from 'lucide-react';
 import { Recipe } from '../types/Recipe';
 import { commonTags } from '@/lib/categories';
@@ -9,52 +9,26 @@ interface EditRecipeModalProps {
   onClose: () => void;
   onEdit: (recipe: Recipe) => void;
   recipe: Recipe | null;
+  form: any;
+  setForm: (form: any) => void;
 }
 
-const EditRecipeModal = ({ isOpen, onClose, onEdit, recipe: initialRecipe }: EditRecipeModalProps) => {
-  const [title, setTitle] = useState('');
-  const [description, setDescription] = useState('');
-  const [images, setImages] = useState<string[]>([]);
-  const [cookTime, setCookTime] = useState(30);
-  const [prepTime, setPrepTime] = useState(15);
-  const [servings, setServings] = useState(4);
-  const [tags, setTags] = useState<string[]>([]);
-  const [newTag, setNewTag] = useState('');
-  const [ingredients, setIngredients] = useState<string[]>(['']);
-  const [instructions, setInstructions] = useState<string[]>(['']);
-  const [isPrivate, setIsPrivate] = useState(false);
-  const [link, setLink] = useState('');
+const EditRecipeModal = ({ isOpen, onClose, onEdit, recipe: initialRecipe, form, setForm }: EditRecipeModalProps) => {
   const [tagError, setTagError] = useState('');
   const [autoExtract, setAutoExtract] = useState(false);
   const [extractLoading, setExtractLoading] = useState(false);
   const [extractError, setExtractError] = useState('');
-  
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBob2VoZmpkZmJ5Z3VzYmVmYXNkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTA0OTczNjAsImV4cCI6MjA2NjA3MzM2MH0.InHePa3zRmkn8tSq7BqHrXTpxJfGaO4a1Xgh9LdY58o';
+  if (!isOpen || !initialRecipe || !form) return null;
 
-  useEffect(() => {
-    if (initialRecipe) {
-      setTitle(initialRecipe.title);
-      setDescription(initialRecipe.description || '');
-      setImages(initialRecipe.images || []);
-      setCookTime(initialRecipe.cookTime);
-      setPrepTime(initialRecipe.prepTime);
-      setServings(initialRecipe.servings);
-      setTags(initialRecipe.tags);
-      setIngredients(initialRecipe.ingredients.length > 0 ? initialRecipe.ingredients : ['']);
-      setInstructions(initialRecipe.instructions.length > 0 ? initialRecipe.instructions : ['']);
-      setIsPrivate(initialRecipe.visibility === 'private');
-      setLink(initialRecipe.link || '');
-    }
-  }, [initialRecipe]);
-
-  if (!isOpen || !initialRecipe) return null;
+  // Helper setters
+  const setField = (field: string, value: any) => setForm({ ...form, [field]: value });
 
   const handleSetPreviewImage = (indexToMakeFirst: number) => {
     if (indexToMakeFirst === 0) return;
 
-    setImages(currentImages => {
+    setField('images', currentImages => {
       const newImages = [...currentImages];
       const itemToMove = newImages.splice(indexToMakeFirst, 1)[0];
       newImages.unshift(itemToMove);
@@ -77,7 +51,7 @@ const EditRecipeModal = ({ isOpen, onClose, onEdit, recipe: initialRecipe }: Edi
           }
           filesToProcess--;
           if (filesToProcess === 0) {
-            setImages(prev => [...prev, ...newImages]);
+            setField('images', prev => [...prev, ...newImages]);
           }
         };
         reader.readAsDataURL(file);
@@ -86,50 +60,51 @@ const EditRecipeModal = ({ isOpen, onClose, onEdit, recipe: initialRecipe }: Edi
   };
 
   const removeImage = (index: number) => {
-    setImages(prev => prev.filter((_, i) => i !== index));
+    setField('images', prev => prev.filter((_, i) => i !== index));
   };
 
   const addTag = (tag: string) => {
-    if (tag && !tags.includes(tag)) {
-      setTags(prev => [...prev, tag]);
+    if (tag && !form.tags.includes(tag)) {
+      setForm({ ...form, tags: [...form.tags, tag], newTag: '' });
+    } else {
+      setForm({ ...form, newTag: '' });
     }
-    setNewTag('');
   };
 
   const removeTag = (tagToRemove: string) => {
-    setTags(prev => prev.filter(tag => tag !== tagToRemove));
+    setForm({ ...form, tags: form.tags.filter(tag => tag !== tagToRemove) });
   };
 
   const addIngredient = () => {
-    setIngredients(prev => [...prev, '']);
+    setField('ingredients', prev => [...prev, '']);
   };
 
   const updateIngredient = (index: number, value: string) => {
-    setIngredients(prev => prev.map((ingredient, i) => i === index ? value : ingredient));
+    setField('ingredients', prev => prev.map((ingredient, i) => i === index ? value : ingredient));
   };
 
   const removeIngredient = (index: number) => {
-    if (ingredients.length > 1) {
-      setIngredients(prev => prev.filter((_, i) => i !== index));
+    if (form.ingredients.length > 1) {
+      setField('ingredients', prev => prev.filter((_, i) => i !== index));
     }
   };
 
   const addInstruction = () => {
-    setInstructions(prev => [...prev, '']);
+    setField('instructions', prev => [...prev, '']);
   };
 
   const updateInstruction = (index: number, value: string) => {
-    setInstructions(prev => prev.map((instruction, i) => i === index ? value : instruction));
+    setField('instructions', prev => prev.map((instruction, i) => i === index ? value : instruction));
   };
 
   const removeInstruction = (index: number) => {
-    if (instructions.length > 1) {
-      setInstructions(prev => prev.filter((_, i) => i !== index));
+    if (form.instructions.length > 1) {
+      setField('instructions', prev => prev.filter((_, i) => i !== index));
     }
   };
 
   const handleAutoExtract = async () => {
-    if (!link.trim()) {
+    if (!form.link.trim()) {
       setExtractError('Please enter a valid link first.');
       setAutoExtract(false);
       return;
@@ -141,21 +116,26 @@ const EditRecipeModal = ({ isOpen, onClose, onEdit, recipe: initialRecipe }: Edi
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'apikey': SUPABASE_ANON_KEY,
-          'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+          'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBob2VoZmpkZmJ5Z3VzYmVmYXNkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTA0OTczNjAsImV4cCI6MjA2NjA3MzM2MH0.InHePa3zRmkn8tSq7BqHrXTpxJfGaO4a1Xgh9LdY58o',
+          'Authorization': `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBob2VoZmpkZmJ5Z3VzYmVmYXNkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTA0OTczNjAsImV4cCI6MjA2NjA3MzM2MH0.InHePa3zRmkn8tSq7BqHrXTpxJfGaO4a1Xgh9LdY58o`,
         },
-        body: JSON.stringify({ link: link.trim() }),
+        body: JSON.stringify({ link: form.link.trim() }),
       });
       if (!res.ok) throw new Error('Extraction failed');
       const data = await res.json();
-      setTitle(data.title || '');
-      setDescription(data.description || '');
-      setIngredients(Array.isArray(data.ingredients) ? data.ingredients : []);
-      setInstructions(Array.isArray(data.instructions) ? data.instructions : []);
-      setCookTime(Number(data.cookTime) || 30);
-      setPrepTime(Number(data.prepTime) || 15);
-      setServings(Number(data.servings) || 4);
-      setTags(Array.isArray(data.tags) ? data.tags : []);
+      setForm({
+        ...form,
+        title: data.title || '',
+        description: data.description || '',
+        ingredients: Array.isArray(data.ingredients) ? data.ingredients : [],
+        instructions: Array.isArray(data.instructions) ? data.instructions : [],
+        cookTime: Number(data.cookTime) || 30,
+        prepTime: Number(data.prepTime) || 15,
+        servings: Number(data.servings) || 4,
+        tags: Array.isArray(data.tags)
+          ? Array.from(new Set([...form.tags, ...data.tags]))
+          : form.tags,
+      });
     } catch (err) {
       setExtractError('Failed to extract recipe. Please check the link or try again.');
     } finally {
@@ -167,8 +147,8 @@ const EditRecipeModal = ({ isOpen, onClose, onEdit, recipe: initialRecipe }: Edi
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!title.trim() || !initialRecipe) return;
-    if (tags.length === 0) {
+    if (!form.title.trim() || !initialRecipe) return;
+    if (form.tags.length === 0) {
       setTagError('Please select at least one category for your recipe.');
       return;
     } else {
@@ -177,17 +157,17 @@ const EditRecipeModal = ({ isOpen, onClose, onEdit, recipe: initialRecipe }: Edi
 
     const editedRecipe: Recipe = {
       ...initialRecipe,
-      title: title.trim(),
-      description: description.trim(),
-      images: images,
-      cookTime,
-      prepTime,
-      servings,
-      tags,
-      ingredients: ingredients.filter(ing => ing.trim()),
-      instructions: instructions.filter(inst => inst.trim()),
-      visibility: isPrivate ? 'private' : 'public',
-      link: link.trim(),
+      title: form.title.trim(),
+      description: form.description.trim(),
+      images: form.images,
+      cookTime: form.cookTime,
+      prepTime: form.prepTime,
+      servings: form.servings,
+      tags: form.tags,
+      ingredients: form.ingredients.filter(ing => ing.trim()),
+      instructions: form.instructions.filter(inst => inst.trim()),
+      visibility: form.isPrivate ? 'private' : 'public',
+      link: form.link.trim(),
     };
 
     onEdit(editedRecipe);
@@ -215,7 +195,7 @@ const EditRecipeModal = ({ isOpen, onClose, onEdit, recipe: initialRecipe }: Edi
               <label className="block text-sm font-medium text-amber-900 mb-2">Recipe Photos</label>
               <p className="text-sm text-amber-600 mb-2">Click an image to set it as the preview.</p>
               <div className="grid grid-cols-3 gap-4 mb-2">
-                {images.map((image, index) => (
+                {form.images.map((image, index) => (
                   <div
                     key={image}
                     onClick={() => handleSetPreviewImage(index)}
@@ -266,8 +246,8 @@ const EditRecipeModal = ({ isOpen, onClose, onEdit, recipe: initialRecipe }: Edi
               <label className="block text-sm font-medium text-amber-900 mb-2">Recipe Title *</label>
               <input
                 type="text"
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
+                value={form.title}
+                onChange={(e) => setField('title', e.target.value)}
                 placeholder="Enter recipe title"
                 className="w-full p-3 border border-amber-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-300"
                 required
@@ -275,8 +255,8 @@ const EditRecipeModal = ({ isOpen, onClose, onEdit, recipe: initialRecipe }: Edi
               <label className="block text-sm font-medium text-amber-900 mb-2 mt-4">Original Recipe Link</label>
               <input
                 type="url"
-                value={link}
-                onChange={(e) => setLink(e.target.value)}
+                value={form.link}
+                onChange={(e) => setField('link', e.target.value)}
                 placeholder="https://example.com/original-recipe"
                 className="w-full p-3 border border-amber-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-300"
               />
@@ -296,8 +276,8 @@ const EditRecipeModal = ({ isOpen, onClose, onEdit, recipe: initialRecipe }: Edi
             <div>
               <label className="block text-sm font-medium text-amber-900 mb-2">Description</label>
               <textarea
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
+                value={form.description}
+                onChange={(e) => setField('description', e.target.value)}
                 placeholder="Brief description of your recipe"
                 rows={3}
                 className="w-full p-3 border border-amber-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-300 resize-none"
@@ -310,8 +290,8 @@ const EditRecipeModal = ({ isOpen, onClose, onEdit, recipe: initialRecipe }: Edi
                 <label className="block text-sm font-medium text-amber-900 mb-2">Prep Time</label>
                 <input
                   type="number"
-                  value={prepTime}
-                  onChange={(e) => setPrepTime(Number(e.target.value))}
+                  value={form.prepTime}
+                  onChange={(e) => setField('prepTime', Number(e.target.value))}
                   min="0"
                   className="w-full p-3 border border-amber-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-300"
                 />
@@ -321,8 +301,8 @@ const EditRecipeModal = ({ isOpen, onClose, onEdit, recipe: initialRecipe }: Edi
                 <label className="block text-sm font-medium text-amber-900 mb-2">Cook Time</label>
                 <input
                   type="number"
-                  value={cookTime}
-                  onChange={(e) => setCookTime(Number(e.target.value))}
+                  value={form.cookTime}
+                  onChange={(e) => setField('cookTime', Number(e.target.value))}
                   min="0"
                   className="w-full p-3 border border-amber-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-300"
                 />
@@ -332,8 +312,8 @@ const EditRecipeModal = ({ isOpen, onClose, onEdit, recipe: initialRecipe }: Edi
                 <label className="block text-sm font-medium text-amber-900 mb-2">Servings</label>
                 <input
                   type="number"
-                  value={servings}
-                  onChange={(e) => setServings(Number(e.target.value))}
+                  value={form.servings}
+                  onChange={(e) => setField('servings', Number(e.target.value))}
                   min="1"
                   className="w-full p-3 border border-amber-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-300"
                 />
@@ -344,7 +324,7 @@ const EditRecipeModal = ({ isOpen, onClose, onEdit, recipe: initialRecipe }: Edi
             <div>
               <label className="block text-sm font-medium text-amber-900 mb-2">Tags</label>
               <div className="flex flex-wrap gap-2 mb-3">
-                {tags.map(tag => (
+                {form.tags.map(tag => (
                   <span
                     key={tag}
                     className="px-3 py-1 bg-amber-100 text-amber-700 rounded-full text-sm flex items-center gap-1"
@@ -363,22 +343,22 @@ const EditRecipeModal = ({ isOpen, onClose, onEdit, recipe: initialRecipe }: Edi
               <div className="flex gap-2 mb-3">
                 <input
                   type="text"
-                  value={newTag}
-                  onChange={(e) => setNewTag(e.target.value)}
+                  value={form.newTag}
+                  onChange={(e) => setField('newTag', e.target.value)}
                   placeholder="Add a tag"
                   className="flex-1 p-2 border border-amber-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-300"
-                  onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addTag(newTag))}
+                  onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addTag(form.newTag))}
                 />
                 <button
                   type="button"
-                  onClick={() => addTag(newTag)}
+                  onClick={() => addTag(form.newTag)}
                   className="px-3 py-2 bg-amber-100 text-amber-700 rounded-lg hover:bg-amber-200 transition-colors"
                 >
                   <Plus className="w-4 h-4" />
                 </button>
               </div>
               <div className="flex flex-wrap gap-2">
-                {commonTags.filter(tag => !tags.includes(tag)).map(tag => (
+                {commonTags.filter(tag => !form.tags.includes(tag)).map(tag => (
                   <button
                     key={tag}
                     type="button"
@@ -395,7 +375,7 @@ const EditRecipeModal = ({ isOpen, onClose, onEdit, recipe: initialRecipe }: Edi
             <div>
               <label className="block text-sm font-medium text-amber-900 mb-2">Ingredients</label>
               <div className="space-y-3">
-                {ingredients.map((ingredient, index) => (
+                {form.ingredients.map((ingredient, index) => (
                   <div key={index} className="flex items-center gap-2">
                     <input
                       type="text"
@@ -408,7 +388,7 @@ const EditRecipeModal = ({ isOpen, onClose, onEdit, recipe: initialRecipe }: Edi
                       type="button"
                       onClick={() => removeIngredient(index)}
                       className="p-2 text-red-500 hover:bg-red-50 rounded-full transition-colors"
-                      disabled={ingredients.length <= 1}
+                      disabled={form.ingredients.length <= 1}
                     >
                       <Trash2 className="w-4 h-4" />
                     </button>
@@ -429,7 +409,7 @@ const EditRecipeModal = ({ isOpen, onClose, onEdit, recipe: initialRecipe }: Edi
             <div>
               <label className="block text-sm font-medium text-amber-900 mb-2">Instructions</label>
               <div className="space-y-3">
-                {instructions.map((instruction, index) => (
+                {form.instructions.map((instruction, index) => (
                   <div key={index} className="flex items-start gap-2">
                     <span className="pt-2 text-sm font-bold text-amber-500">{index + 1}.</span>
                     <textarea
@@ -443,7 +423,7 @@ const EditRecipeModal = ({ isOpen, onClose, onEdit, recipe: initialRecipe }: Edi
                       type="button"
                       onClick={() => removeInstruction(index)}
                       className="p-2 text-red-500 hover:bg-red-50 rounded-full transition-colors mt-1"
-                      disabled={instructions.length <= 1}
+                      disabled={form.instructions.length <= 1}
                     >
                       <Trash2 className="w-4 h-4" />
                     </button>
@@ -472,8 +452,8 @@ const EditRecipeModal = ({ isOpen, onClose, onEdit, recipe: initialRecipe }: Edi
                 </div>
                 <Switch
                     id="visibility"
-                    checked={isPrivate}
-                    onCheckedChange={setIsPrivate}
+                    checked={form.isPrivate}
+                    onCheckedChange={(checked) => setField('isPrivate', checked)}
                 />
             </div>
 

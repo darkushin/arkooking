@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useRef as useReactRef } from 'react';
 import { X, Plus, Camera, Trash2, Loader2 } from 'lucide-react';
 import { Recipe } from '../types/Recipe';
 import { commonTags } from '@/lib/categories';
@@ -8,52 +8,51 @@ import { UserRole } from '@/hooks/useAuth';
 interface AddRecipeModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onAdd: (recipe: Omit<Recipe, 'id' | 'user_id'>) => void;
+  onAdd: (recipe: Omit<Recipe, 'id'>) => void;
   userRole: UserRole | undefined;
   initialTag?: string;
+  isAddModalOpen?: boolean;
+  form: any;
+  setForm: (form: any) => void;
 }
 
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBob2VoZmpkZmJ5Z3VzYmVmYXNkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTA0OTczNjAsImV4cCI6MjA2NjA3MzM2MH0.InHePa3zRmkn8tSq7BqHrXTpxJfGaO4a1Xgh9LdY58o';
 
-const AddRecipeModal = ({ isOpen, onClose, onAdd, userRole, initialTag }: AddRecipeModalProps) => {
-  const [title, setTitle] = useState('');
-  const [description, setDescription] = useState('');
-  const [images, setImages] = useState<string[]>([]);
-  const [cookTime, setCookTime] = useState(30);
-  const [prepTime, setPrepTime] = useState(15);
-  const [servings, setServings] = useState(4);
-  const [tags, setTags] = useState<string[]>([]);
-  const [newTag, setNewTag] = useState('');
-  const [ingredients, setIngredients] = useState<string[]>(['']);
-  const [instructions, setInstructions] = useState<string[]>(['']);
-  const [isPrivate, setIsPrivate] = useState(userRole === 'Editor');
-  const [link, setLink] = useState('');
+
+const getInitialFormState = (initialTag: string | undefined, userRole: UserRole | undefined) => {
+  const saved = localStorage.getItem('addRecipeFormState');
+  if (saved) {
+    try {
+      return JSON.parse(saved);
+    } catch {}
+  }
+  return {
+    title: '',
+    description: '',
+    images: [],
+    cookTime: 30,
+    prepTime: 15,
+    servings: 4,
+    tags: initialTag ? [initialTag] : [],
+    newTag: '',
+    ingredients: [''],
+    instructions: [''],
+    isPrivate: userRole === 'Editor',
+    link: ''
+  };
+};
+
+const AddRecipeModal = ({ isOpen, onClose, onAdd, userRole, initialTag, isAddModalOpen, form, setForm }: AddRecipeModalProps) => {
   const [tagError, setTagError] = useState('');
   const [autoExtract, setAutoExtract] = useState(false);
   const [extractLoading, setExtractLoading] = useState(false);
   const [extractError, setExtractError] = useState('');
-  
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  useEffect(() => {
-    if (isOpen) {
-      // Reset form when modal opens
-      setTitle('');
-      setDescription('');
-      setImages([]);
-      setCookTime(30);
-      setPrepTime(15);
-      setServings(4);
-      setTags(initialTag ? [initialTag] : []);
-      setNewTag('');
-      setIngredients(['']);
-      setInstructions(['']);
-      setIsPrivate(userRole === 'Editor');
-      setLink('');
-    }
-  }, [isOpen, userRole, initialTag]);
-
   if (!isOpen) return null;
+
+  // Helper setters
+  const setField = (field: string, value: any) => setForm({ ...form, [field]: value });
 
   const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;
@@ -70,7 +69,7 @@ const AddRecipeModal = ({ isOpen, onClose, onAdd, userRole, initialTag }: AddRec
           }
           filesToProcess--;
           if (filesToProcess === 0) {
-            setImages(prev => [...prev, ...newImages]);
+            setField('images', [...form.images, ...newImages]);
           }
         };
         reader.readAsDataURL(file);
@@ -79,50 +78,51 @@ const AddRecipeModal = ({ isOpen, onClose, onAdd, userRole, initialTag }: AddRec
   };
 
   const removeImage = (index: number) => {
-    setImages(prev => prev.filter((_, i) => i !== index));
+    setField('images', form.images.filter((_, i) => i !== index));
   };
 
   const addTag = (tag: string) => {
-    if (tag && !tags.includes(tag)) {
-      setTags(prev => [...prev, tag]);
+    if (tag && !form.tags.includes(tag)) {
+      setForm({ ...form, tags: [...form.tags, tag], newTag: '' });
+    } else {
+      setForm({ ...form, newTag: '' });
     }
-    setNewTag('');
   };
 
   const removeTag = (tagToRemove: string) => {
-    setTags(prev => prev.filter(tag => tag !== tagToRemove));
+    setField('tags', form.tags.filter(tag => tag !== tagToRemove));
   };
 
   const addIngredient = () => {
-    setIngredients(prev => [...prev, '']);
+    setField('ingredients', [...form.ingredients, '']);
   };
 
   const updateIngredient = (index: number, value: string) => {
-    setIngredients(prev => prev.map((ingredient, i) => i === index ? value : ingredient));
+    setField('ingredients', form.ingredients.map((ingredient, i) => i === index ? value : ingredient));
   };
 
   const removeIngredient = (index: number) => {
-    if (ingredients.length > 1) {
-      setIngredients(prev => prev.filter((_, i) => i !== index));
+    if (form.ingredients.length > 1) {
+      setField('ingredients', form.ingredients.filter((_, i) => i !== index));
     }
   };
 
   const addInstruction = () => {
-    setInstructions(prev => [...prev, '']);
+    setField('instructions', [...form.instructions, '']);
   };
 
   const updateInstruction = (index: number, value: string) => {
-    setInstructions(prev => prev.map((instruction, i) => i === index ? value : instruction));
+    setField('instructions', form.instructions.map((instruction, i) => i === index ? value : instruction));
   };
 
   const removeInstruction = (index: number) => {
-    if (instructions.length > 1) {
-      setInstructions(prev => prev.filter((_, i) => i !== index));
+    if (form.instructions.length > 1) {
+      setField('instructions', form.instructions.filter((_, i) => i !== index));
     }
   };
 
   const handleAutoExtract = async () => {
-    if (!link.trim()) {
+    if (!form.link.trim()) {
       setExtractError('Please enter a valid link first.');
       setAutoExtract(false);
       return;
@@ -137,18 +137,23 @@ const AddRecipeModal = ({ isOpen, onClose, onAdd, userRole, initialTag }: AddRec
           'apikey': SUPABASE_ANON_KEY,
           'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
         },
-        body: JSON.stringify({ link: link.trim() }),
+        body: JSON.stringify({ link: form.link.trim() }),
       });
       if (!res.ok) throw new Error('Extraction failed');
       const data = await res.json();
-      setTitle(data.title || '');
-      setDescription(data.description || '');
-      setIngredients(Array.isArray(data.ingredients) ? data.ingredients : []);
-      setInstructions(Array.isArray(data.instructions) ? data.instructions : []);
-      setCookTime(Number(data.cookTime) || 30);
-      setPrepTime(Number(data.prepTime) || 15);
-      setServings(Number(data.servings) || 4);
-      setTags(Array.isArray(data.tags) ? data.tags : []);
+      setForm({
+        ...form,
+        title: data.title || '',
+        description: data.description || '',
+        ingredients: Array.isArray(data.ingredients) ? data.ingredients : [],
+        instructions: Array.isArray(data.instructions) ? data.instructions : [],
+        cookTime: Number(data.cookTime) || 30,
+        prepTime: Number(data.prepTime) || 15,
+        servings: Number(data.servings) || 4,
+        tags: Array.isArray(data.tags)
+          ? Array.from(new Set([...form.tags, ...data.tags]))
+          : form.tags,
+      });
     } catch (err) {
       setExtractError('Failed to extract recipe. Please check the link or try again.');
     } finally {
@@ -159,29 +164,27 @@ const AddRecipeModal = ({ isOpen, onClose, onAdd, userRole, initialTag }: AddRec
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    
-    if (!title.trim()) return;
-    if (tags.length === 0) {
+    if (!form.title.trim()) return;
+    if (form.tags.length === 0) {
       setTagError('Please select at least one category for your recipe.');
       return;
     } else {
       setTagError('');
     }
-
-    const recipe: Omit<Recipe, 'id' | 'user_id'> = {
-      title: title.trim(),
-      description: description.trim(),
-      images: images,
-      cookTime,
-      prepTime,
-      servings,
-      tags,
-      ingredients: ingredients.filter(ing => ing.trim()),
-      instructions: instructions.filter(inst => inst.trim()),
-      visibility: isPrivate ? 'private' : 'public',
-      link: link.trim(),
+    const recipe: Omit<Recipe, 'id'> = {
+      title: form.title.trim(),
+      description: form.description.trim(),
+      images: form.images,
+      cookTime: form.cookTime,
+      prepTime: form.prepTime,
+      servings: form.servings,
+      tags: form.tags,
+      ingredients: form.ingredients.filter(ing => ing.trim()),
+      instructions: form.instructions.filter(inst => inst.trim()),
+      visibility: form.isPrivate ? 'private' : 'public',
+      user_id: '', // will be set in the hook
+      link: form.link.trim(),
     };
-
     onAdd(recipe);
   };
 
@@ -206,7 +209,7 @@ const AddRecipeModal = ({ isOpen, onClose, onAdd, userRole, initialTag }: AddRec
             <div>
               <label className="block text-sm font-medium text-amber-900 mb-2">Recipe Photos</label>
               <div className="grid grid-cols-3 gap-4 mb-2">
-                {images.map((image, index) => (
+                {form.images.map((image, index) => (
                   <div key={index} className="relative aspect-square">
                     <img src={image} alt={`Recipe image ${index + 1}`} className="w-full h-full object-cover rounded-xl" />
                     <button
@@ -243,8 +246,8 @@ const AddRecipeModal = ({ isOpen, onClose, onAdd, userRole, initialTag }: AddRec
               <label className="block text-sm font-medium text-amber-900 mb-2">Recipe Title *</label>
               <input
                 type="text"
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
+                value={form.title}
+                onChange={(e) => setField('title', e.target.value)}
                 placeholder="Enter recipe title"
                 className="w-full p-3 border border-amber-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-300"
                 required
@@ -252,8 +255,8 @@ const AddRecipeModal = ({ isOpen, onClose, onAdd, userRole, initialTag }: AddRec
               <label className="block text-sm font-medium text-amber-900 mb-2 mt-4">Original Recipe Link</label>
               <input
                 type="url"
-                value={link}
-                onChange={(e) => setLink(e.target.value)}
+                value={form.link}
+                onChange={(e) => setField('link', e.target.value)}
                 placeholder="https://example.com/original-recipe"
                 className="w-full p-3 border border-amber-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-300"
               />
@@ -273,8 +276,8 @@ const AddRecipeModal = ({ isOpen, onClose, onAdd, userRole, initialTag }: AddRec
             <div>
               <label className="block text-sm font-medium text-amber-900 mb-2">Description</label>
               <textarea
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
+                value={form.description}
+                onChange={(e) => setField('description', e.target.value)}
                 placeholder="Brief description of your recipe"
                 rows={3}
                 className="w-full p-3 border border-amber-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-300 resize-none"
@@ -287,8 +290,8 @@ const AddRecipeModal = ({ isOpen, onClose, onAdd, userRole, initialTag }: AddRec
                 <label className="block text-sm font-medium text-amber-900 mb-2">Prep Time</label>
                 <input
                   type="number"
-                  value={prepTime}
-                  onChange={(e) => setPrepTime(Number(e.target.value))}
+                  value={form.prepTime}
+                  onChange={(e) => setField('prepTime', Number(e.target.value))}
                   min="0"
                   className="w-full p-3 border border-amber-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-300"
                 />
@@ -298,8 +301,8 @@ const AddRecipeModal = ({ isOpen, onClose, onAdd, userRole, initialTag }: AddRec
                 <label className="block text-sm font-medium text-amber-900 mb-2">Cook Time</label>
                 <input
                   type="number"
-                  value={cookTime}
-                  onChange={(e) => setCookTime(Number(e.target.value))}
+                  value={form.cookTime}
+                  onChange={(e) => setField('cookTime', Number(e.target.value))}
                   min="0"
                   className="w-full p-3 border border-amber-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-300"
                 />
@@ -309,8 +312,8 @@ const AddRecipeModal = ({ isOpen, onClose, onAdd, userRole, initialTag }: AddRec
                 <label className="block text-sm font-medium text-amber-900 mb-2">Servings</label>
                 <input
                   type="number"
-                  value={servings}
-                  onChange={(e) => setServings(Number(e.target.value))}
+                  value={form.servings}
+                  onChange={(e) => setField('servings', Number(e.target.value))}
                   min="1"
                   className="w-full p-3 border border-amber-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-300"
                 />
@@ -325,13 +328,13 @@ const AddRecipeModal = ({ isOpen, onClose, onAdd, userRole, initialTag }: AddRec
                   <button
                     key={tag}
                     type="button"
-                    onClick={() => tags.includes(tag) ? removeTag(tag) : addTag(tag)}
-                    className={`px-3 py-1 rounded-full text-sm transition-colors border ${tags.includes(tag)
+                    onClick={() => form.tags.includes(tag) ? removeTag(tag) : addTag(tag)}
+                    className={`px-3 py-1 rounded-full text-sm transition-colors border ${form.tags.includes(tag)
                       ? 'bg-amber-100 text-amber-700 border-amber-200'
                       : 'bg-gray-100 text-gray-700 border-gray-200 hover:bg-gray-200'}`}
                   >
                     {tag}
-                    {tags.includes(tag) && (
+                    {form.tags.includes(tag) && (
                       <X className="w-3 h-3 ml-1" />
                     )}
                   </button>
@@ -343,7 +346,7 @@ const AddRecipeModal = ({ isOpen, onClose, onAdd, userRole, initialTag }: AddRec
             <div>
               <label className="block text-sm font-medium text-amber-900 mb-2">Ingredients</label>
               <div className="space-y-2">
-                {ingredients.map((ingredient, index) => (
+                {form.ingredients.map((ingredient, index) => (
                   <div key={index} className="flex gap-2">
                     <input
                       type="text"
@@ -352,7 +355,7 @@ const AddRecipeModal = ({ isOpen, onClose, onAdd, userRole, initialTag }: AddRec
                       placeholder="Enter ingredient"
                       className="flex-1 p-3 border border-amber-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-300"
                     />
-                    {ingredients.length > 1 && (
+                    {form.ingredients.length > 1 && (
                       <button
                         type="button"
                         onClick={() => removeIngredient(index)}
@@ -378,7 +381,7 @@ const AddRecipeModal = ({ isOpen, onClose, onAdd, userRole, initialTag }: AddRec
             <div>
               <label className="block text-sm font-medium text-amber-900 mb-2">Instructions</label>
               <div className="space-y-2">
-                {instructions.map((instruction, index) => (
+                {form.instructions.map((instruction, index) => (
                   <div key={index} className="flex gap-2">
                     <div className="flex-shrink-0 w-8 h-8 bg-gradient-to-r from-rose-400 to-orange-400 text-white rounded-full flex items-center justify-center text-sm font-bold mt-1">
                       {index + 1}
@@ -390,7 +393,7 @@ const AddRecipeModal = ({ isOpen, onClose, onAdd, userRole, initialTag }: AddRec
                       rows={2}
                       className="flex-1 p-3 border border-amber-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-300 resize-none"
                     />
-                    {instructions.length > 1 && (
+                    {form.instructions.length > 1 && (
                       <button
                         type="button"
                         onClick={() => removeInstruction(index)}
@@ -414,7 +417,7 @@ const AddRecipeModal = ({ isOpen, onClose, onAdd, userRole, initialTag }: AddRec
 
             {/* Visibility Toggle */}
             <div className="flex items-center gap-3">
-              <Switch id="private-switch" checked={isPrivate} onCheckedChange={setIsPrivate} />
+              <Switch id="private-switch" checked={form.isPrivate} onCheckedChange={val => setField('isPrivate', val)} />
               <label htmlFor="private-switch" className="text-sm font-medium text-amber-900 select-none cursor-pointer">
                 Private Recipe
               </label>
@@ -427,7 +430,7 @@ const AddRecipeModal = ({ isOpen, onClose, onAdd, userRole, initialTag }: AddRec
             )}
             <button
               type="submit"
-              disabled={!title.trim()}
+              disabled={!form.title.trim()}
               className="w-full p-4 bg-gradient-to-r from-rose-400 to-orange-400 text-white rounded-xl font-medium hover:from-rose-500 hover:to-orange-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
             >
               Save Recipe
