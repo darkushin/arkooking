@@ -43,7 +43,13 @@ const RecipeCard = ({ recipe, onClick }: RecipeCardProps) => {
               rel="noopener noreferrer"
               className="underline hover:text-amber-900 break-all"
             >
-              {recipe.link}
+              {(() => {
+                try {
+                  return new URL(recipe.link).hostname.replace(/^www\./, '');
+                } catch {
+                  return recipe.link;
+                }
+              })()}
             </a>
           </div>
         )}
