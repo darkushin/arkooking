@@ -23,7 +23,12 @@ const EditRecipeModal = ({ isOpen, onClose, onEdit, recipe: initialRecipe, form,
   if (!isOpen || !initialRecipe || !form) return null;
 
   // Helper setters
-  const setField = (field: string, value: any) => setForm({ ...form, [field]: value });
+  const setField = (field: string, value: any) => {
+    setForm(prevForm => ({
+      ...prevForm,
+      [field]: typeof value === 'function' ? value(prevForm[field]) : value,
+    }));
+  };
 
   const handleSetPreviewImage = (indexToMakeFirst: number) => {
     if (indexToMakeFirst === 0) return;
@@ -195,7 +200,7 @@ const EditRecipeModal = ({ isOpen, onClose, onEdit, recipe: initialRecipe, form,
               <label className="block text-sm font-medium text-amber-900 mb-2">Recipe Photos</label>
               <p className="text-sm text-amber-600 mb-2">Click an image to set it as the preview.</p>
               <div className="grid grid-cols-3 gap-4 mb-2">
-                {form.images.map((image, index) => (
+                {(Array.isArray(form.images) ? form.images : []).map((image, index) => (
                   <div
                     key={image}
                     onClick={() => handleSetPreviewImage(index)}

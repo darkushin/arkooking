@@ -42,13 +42,17 @@ const getInitialEditFormState = (recipe) => {
   const saved = localStorage.getItem(`editRecipeFormState_${recipe.id}`);
   if (saved) {
     try {
-      return JSON.parse(saved);
+      const parsed = JSON.parse(saved);
+      return {
+        ...parsed,
+        images: Array.isArray(parsed.images) ? parsed.images : [],
+      };
     } catch {}
   }
   return {
     title: recipe.title,
     description: recipe.description || '',
-    images: recipe.images || [],
+    images: Array.isArray(recipe.images) ? recipe.images : [],
     cookTime: recipe.cookTime,
     prepTime: recipe.prepTime,
     servings: recipe.servings,
@@ -214,7 +218,7 @@ const Index = () => {
         <div className="flex flex-col items-center">
           <div className="text-8xl font-dancing-script text-amber-900 mb-8">arkooking</div>
           <div className="w-16 h-16 border-4 border-amber-300 border-t-amber-700 rounded-full animate-spin mb-8"></div>
-          <div className="text-4xl font-dancing-script text-amber-900">great food takes time to load</div>
+          <div className="text-4xl font-dancing-script text-amber-900">great food takes time to prepare</div>
         </div>
       </div>
     );
