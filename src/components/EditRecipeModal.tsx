@@ -129,9 +129,9 @@ const EditRecipeModal = ({ isOpen, onClose, onEdit, recipe: initialRecipe, form,
         description: data.description || '',
         ingredients: Array.isArray(data.ingredients) ? data.ingredients : [],
         instructions: Array.isArray(data.instructions) ? data.instructions : [],
-        cookTime: Number(data.cookTime) || 30,
-        prepTime: Number(data.prepTime) || 15,
-        servings: Number(data.servings) || 4,
+        cookTime: Number(data.cookTime) || 0,
+        prepTime: Number(data.prepTime) || 0,
+        servings: Number(data.servings) || 0,
         tags: Array.isArray(data.tags)
           ? Array.from(new Set([...form.tags, ...data.tags]))
           : form.tags,
