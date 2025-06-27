@@ -78,6 +78,7 @@ const Index = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [addRecipeForm, setAddRecipeForm] = useState(() => getInitialFormState(null, null));
   const [editRecipeForm, setEditRecipeForm] = useState(null);
+  const [showLoading, setShowLoading] = useState(true);
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -124,6 +125,11 @@ const Index = () => {
       }
     }
   }, [isEditModalOpen, selectedRecipe]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => setShowLoading(false), 10000);
+    return () => clearTimeout(timer);
+  }, []);
 
   const handleSignOut = async () => {
     if (isGuest) {
@@ -202,10 +208,14 @@ const Index = () => {
     setIsDetailModalOpen(false);
   };
 
-  if (authLoading || recipesLoading) {
+  if ((authLoading || recipesLoading || showLoading)) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-cream-50 to-rose-50 flex items-center justify-center">
-        <div className="text-amber-800">Loading...</div>
+      <div className="min-h-screen bg-gradient-to-br from-cream-50 to-rose-50 flex flex-col items-center justify-center">
+        <div className="flex flex-col items-center">
+          <div className="text-8xl font-dancing-script text-amber-900 mb-8">arkooking</div>
+          <div className="w-16 h-16 border-4 border-amber-300 border-t-amber-700 rounded-full animate-spin mb-8"></div>
+          <div className="text-4xl font-dancing-script text-amber-900">great food takes time to load</div>
+        </div>
       </div>
     );
   }
