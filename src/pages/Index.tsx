@@ -218,7 +218,7 @@ const Index = () => {
         <div className="flex flex-col items-center">
           <div className="text-8xl font-dancing-script text-amber-900 mb-8">arkooking</div>
           <div className="w-16 h-16 border-4 border-amber-300 border-t-amber-700 rounded-full animate-spin mb-8"></div>
-          <div className="text-4xl font-dancing-script text-amber-900">great food takes time to prepare</div>
+          <div className="text-4xl font-dancing-script text-amber-900 text-center">good food is coming</div>
         </div>
       </div>
     );
