@@ -4,6 +4,9 @@ import { Recipe } from '../types/Recipe';
 import { commonTags } from '@/lib/categories';
 import { Switch } from '@/components/ui/switch';
 import { SUPABASE_ANON_KEY, SUPABASE_FUNCTIONS_URL } from '@/integrations/supabase/access';
+import { DndContext, closestCenter, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
+import { arrayMove, SortableContext, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 
 interface EditRecipeModalProps {
   isOpen: boolean;
@@ -14,13 +17,56 @@ interface EditRecipeModalProps {
   setForm: (form: any) => void;
 }
 
+// Sortable ingredient item component
+function SortableIngredient({ id, index, ingredient, updateIngredient, removeIngredient, disabled }) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id });
+  return (
+    <div
+      ref={setNodeRef}
+      style={{
+        transform: CSS.Transform.toString(transform),
+        transition,
+        opacity: isDragging ? 0.5 : 1,
+        cursor: 'grab',
+      }}
+      className="flex gap-2 items-center bg-white rounded-lg border border-amber-100 shadow-sm px-2 py-1"
+      {...attributes}
+      {...listeners}
+    >
+      <span className="text-amber-400 font-bold select-none cursor-grab">≡</span>
+      <input
+        type="text"
+        value={ingredient}
+        onChange={(e) => updateIngredient(index, e.target.value)}
+        placeholder="e.g., 2 cups flour"
+        className="w-full p-2 border border-amber-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-300"
+      />
+      {disabled ? null : (
+        <button
+          type="button"
+          onClick={() => removeIngredient(index)}
+          className="p-2 text-red-500 hover:bg-red-50 rounded-full transition-colors"
+        >
+          <Trash2 className="w-4 h-4" />
+        </button>
+      )}
+    </div>
+  );
+}
+
 const EditRecipeModal = ({ isOpen, onClose, onEdit, recipe: initialRecipe, form, setForm }: EditRecipeModalProps) => {
+  // All hooks at the top!
   const [tagError, setTagError] = useState('');
   const [autoExtract, setAutoExtract] = useState(false);
   const [extractLoading, setExtractLoading] = useState(false);
   const [extractError, setExtractError] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
+  // DnD-kit setup
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } })
+  );
 
+  // Now do the early return
   if (!isOpen || !initialRecipe || !form) return null;
 
   // Helper setters
@@ -177,6 +223,15 @@ const EditRecipeModal = ({ isOpen, onClose, onEdit, recipe: initialRecipe, form,
     };
 
     onEdit(editedRecipe);
+  };
+
+  const handleDragEnd = (event) => {
+    const { active, over } = event;
+    if (active.id !== over?.id) {
+      const oldIndex = form.ingredients.findIndex((_, i) => i === Number(active.id));
+      const newIndex = form.ingredients.findIndex((_, i) => i === Number(over.id));
+      setField('ingredients', prev => arrayMove(prev, oldIndex, newIndex));
+    }
   };
 
   return (
@@ -380,27 +435,26 @@ const EditRecipeModal = ({ isOpen, onClose, onEdit, recipe: initialRecipe, form,
             {/* Ingredients */}
             <div>
               <label className="block text-sm font-medium text-amber-900 mb-2">Ingredients</label>
-              <div className="space-y-3">
-                {form.ingredients.map((ingredient, index) => (
-                  <div key={index} className="flex items-center gap-2">
-                    <input
-                      type="text"
-                      value={ingredient}
-                      onChange={(e) => updateIngredient(index, e.target.value)}
-                      placeholder="e.g., 2 cups flour"
-                      className="w-full p-2 border border-amber-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-300"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => removeIngredient(index)}
-                      className="p-2 text-red-500 hover:bg-red-50 rounded-full transition-colors"
-                      disabled={form.ingredients.length <= 1}
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
+              <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+                <SortableContext
+                  items={form.ingredients.map((_, i) => i)}
+                  strategy={verticalListSortingStrategy}
+                >
+                  <div className="space-y-3">
+                    {form.ingredients.map((ingredient, index) => (
+                      <SortableIngredient
+                        key={index}
+                        id={index}
+                        index={index}
+                        ingredient={ingredient}
+                        updateIngredient={updateIngredient}
+                        removeIngredient={removeIngredient}
+                        disabled={form.ingredients.length <= 1}
+                      />
+                    ))}
                   </div>
-                ))}
-              </div>
+                </SortableContext>
+              </DndContext>
               <button
                 type="button"
                 onClick={addIngredient}

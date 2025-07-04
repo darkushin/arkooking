@@ -5,6 +5,9 @@ import { commonTags } from '@/lib/categories';
 import { Switch } from '@/components/ui/switch';
 import { UserRole } from '@/hooks/useAuth';
 import { SUPABASE_ANON_KEY, SUPABASE_FUNCTIONS_URL } from '@/integrations/supabase/access';
+import { DndContext, closestCenter, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
+import { arrayMove, SortableContext, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 
 interface AddRecipeModalProps {
   isOpen: boolean;
@@ -39,6 +42,43 @@ const getInitialFormState = (initialTag: string | undefined, userRole: UserRole 
     link: ''
   };
 };
+
+// Sortable ingredient item component
+function SortableIngredient({ id, index, ingredient, updateIngredient, removeIngredient, disabled }) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id });
+  return (
+    <div
+      ref={setNodeRef}
+      style={{
+        transform: CSS.Transform.toString(transform),
+        transition,
+        opacity: isDragging ? 0.5 : 1,
+        cursor: 'grab',
+      }}
+      className="flex gap-2 items-center bg-white rounded-lg border border-amber-100 shadow-sm px-2 py-1"
+      {...attributes}
+      {...listeners}
+    >
+      <span className="text-amber-400 font-bold select-none cursor-grab">≡</span>
+      <input
+        type="text"
+        value={ingredient}
+        onChange={(e) => updateIngredient(index, e.target.value)}
+        placeholder="Enter ingredient"
+        className="flex-1 p-3 border border-amber-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-300"
+      />
+      {disabled ? null : (
+        <button
+          type="button"
+          onClick={() => removeIngredient(index)}
+          className="p-3 text-red-600 hover:bg-red-50 rounded-xl transition-colors"
+        >
+          <Trash2 className="w-4 h-4" />
+        </button>
+      )}
+    </div>
+  );
+}
 
 const AddRecipeModal = ({ isOpen, onClose, onAdd, userRole, initialTag, isAddModalOpen, form, setForm }: AddRecipeModalProps) => {
   const [tagError, setTagError] = useState('');
@@ -185,6 +225,20 @@ const AddRecipeModal = ({ isOpen, onClose, onAdd, userRole, initialTag, isAddMod
       link: form.link.trim(),
     };
     onAdd(recipe);
+  };
+
+  // DnD-kit setup
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } })
+  );
+
+  const handleDragEnd = (event) => {
+    const { active, over } = event;
+    if (active.id !== over?.id) {
+      const oldIndex = form.ingredients.findIndex((_, i) => i === Number(active.id));
+      const newIndex = form.ingredients.findIndex((_, i) => i === Number(over.id));
+      setField('ingredients', arrayMove(form.ingredients, oldIndex, newIndex));
+    }
   };
 
   return (
@@ -344,36 +398,34 @@ const AddRecipeModal = ({ isOpen, onClose, onAdd, userRole, initialTag, isAddMod
             {/* Ingredients */}
             <div>
               <label className="block text-sm font-medium text-amber-900 mb-2">Ingredients</label>
-              <div className="space-y-2">
-                {form.ingredients.map((ingredient, index) => (
-                  <div key={index} className="flex gap-2">
-                    <input
-                      type="text"
-                      value={ingredient}
-                      onChange={(e) => updateIngredient(index, e.target.value)}
-                      placeholder="Enter ingredient"
-                      className="flex-1 p-3 border border-amber-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-300"
-                    />
-                    {form.ingredients.length > 1 && (
-                      <button
-                        type="button"
-                        onClick={() => removeIngredient(index)}
-                        className="p-3 text-red-600 hover:bg-red-50 rounded-xl transition-colors"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    )}
-                  </div>
-                ))}
-                <button
-                  type="button"
-                  onClick={addIngredient}
-                  className="w-full p-3 border-2 border-dashed border-amber-200 rounded-xl text-amber-600 hover:border-amber-300 hover:bg-amber-50 transition-colors"
+              <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+                <SortableContext
+                  items={form.ingredients.map((_, i) => i)}
+                  strategy={verticalListSortingStrategy}
                 >
-                  <Plus className="w-4 h-4 inline mr-2" />
-                  Add Ingredient
-                </button>
-              </div>
+                  <div className="space-y-2">
+                    {form.ingredients.map((ingredient, index) => (
+                      <SortableIngredient
+                        key={index}
+                        id={index}
+                        index={index}
+                        ingredient={ingredient}
+                        updateIngredient={updateIngredient}
+                        removeIngredient={removeIngredient}
+                        disabled={form.ingredients.length <= 1}
+                      />
+                    ))}
+                  </div>
+                </SortableContext>
+              </DndContext>
+              <button
+                type="button"
+                onClick={addIngredient}
+                className="w-full p-3 border-2 border-dashed border-amber-200 rounded-xl text-amber-600 hover:border-amber-300 hover:bg-amber-50 transition-colors mt-2"
+              >
+                <Plus className="w-4 h-4 inline mr-2" />
+                Add Ingredient
+              </button>
             </div>
 
             {/* Instructions */}
