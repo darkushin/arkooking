@@ -4,6 +4,7 @@ import { Recipe } from '../types/Recipe';
 import { commonTags } from '@/lib/categories';
 import { Switch } from '@/components/ui/switch';
 import { UserRole } from '@/hooks/useAuth';
+import { SUPABASE_ANON_KEY, SUPABASE_FUNCTIONS_URL } from '@/integrations/supabase/access';
 
 interface AddRecipeModalProps {
   isOpen: boolean;
@@ -15,9 +16,6 @@ interface AddRecipeModalProps {
   form: any;
   setForm: (form: any) => void;
 }
-
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBob2VoZmpkZmJ5Z3VzYmVmYXNkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTA0OTczNjAsImV4cCI6MjA2NjA3MzM2MH0.InHePa3zRmkn8tSq7BqHrXTpxJfGaO4a1Xgh9LdY58o';
-
 
 const getInitialFormState = (initialTag: string | undefined, userRole: UserRole | undefined) => {
   const saved = localStorage.getItem('addRecipeFormState');
@@ -130,7 +128,7 @@ const AddRecipeModal = ({ isOpen, onClose, onAdd, userRole, initialTag, isAddMod
     setExtractError('');
     setExtractLoading(true);
     try {
-      const res = await fetch('https://phoehfjdfbygusbefasd.functions.supabase.co/extract-recipe', {
+      const res = await fetch(`${SUPABASE_FUNCTIONS_URL}/extract-recipe`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
