@@ -1,34 +1,81 @@
 import { useState, useEffect } from 'react';
-import { X, Clock, Users, Edit, Delete, Check, Minus, Plus, ChevronLeft, ChevronRight, ChefHat, Link as LinkIcon, Share2 } from 'lucide-react';
+import { useParams, useNavigate } from 'react-router-dom';
+import { Clock, Users, ChefHat, Link as LinkIcon, Check, Minus, Plus, ChevronLeft, ChevronRight, ArrowLeft } from 'lucide-react';
 import { Recipe } from '../types/Recipe';
 import { scaleIngredient } from '@/lib/recipe-utils';
-import { Profile } from '@/hooks/useAuth';
+import { supabase } from '@/integrations/supabase/client';
 
-interface RecipeDetailModalProps {
-  recipe: Recipe | null;
-  user: Profile | null;
-  isOpen: boolean;
-  onClose: () => void;
-  onEdit: (recipe: Recipe) => void;
-  onDelete: (recipeId: string) => void;
-}
-
-const RecipeDetailModal = ({ recipe, user, isOpen, onClose, onEdit, onDelete }: RecipeDetailModalProps) => {
+const SharedRecipe = () => {
+  const { recipeId } = useParams<{ recipeId: string }>();
+  const navigate = useNavigate();
+  const [recipe, setRecipe] = useState<Recipe | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [checkedIngredients, setCheckedIngredients] = useState<Set<number>>(new Set());
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-  const [desiredServings, setDesiredServings] = useState(String(recipe?.servings || ''));
+  const [desiredServings, setDesiredServings] = useState('1');
   const [adjustedIngredients, setAdjustedIngredients] = useState<string[]>([]);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [checkedInstructions, setCheckedInstructions] = useState<Set<number>>(new Set());
 
   useEffect(() => {
-    if (recipe) {
-      setDesiredServings(String(recipe.servings));
-      setCheckedIngredients(new Set());
-      setCurrentImageIndex(0);
-      setCheckedInstructions(new Set());
-    }
-  }, [recipe]);
+    const fetchRecipe = async () => {
+      if (!recipeId) {
+        setError('Recipe ID is required');
+        setLoading(false);
+        return;
+      }
+
+      try {
+        const { data, error } = await supabase
+          .from('recipes')
+          .select(`
+            *,
+            profiles(full_name)
+          `)
+          .eq('id', recipeId)
+          .eq('visibility', 'public')
+          .single();
+
+        if (error) {
+          throw error;
+        }
+
+        if (!data) {
+          setError('Recipe not found or not publicly accessible');
+          setLoading(false);
+          return;
+        }
+
+        // Transform database format to Recipe type
+        const transformedRecipe: Recipe = {
+          id: data.id,
+          title: data.title,
+          description: data.description || '',
+          images: (data as any).images || [],
+          cookTime: data.cook_time,
+          prepTime: data.prep_time,
+          servings: data.servings,
+          tags: data.tags || [],
+          ingredients: data.ingredients || [],
+          instructions: data.instructions || [],
+          visibility: (data as any).visibility || 'public',
+          user_id: data.user_id,
+          user_full_name: data.profiles?.full_name || '',
+          link: data.link || '',
+        };
+
+        setRecipe(transformedRecipe);
+        setDesiredServings(String(transformedRecipe.servings));
+      } catch (err) {
+        console.error('Error fetching recipe:', err);
+        setError('Failed to load recipe');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchRecipe();
+  }, [recipeId]);
 
   useEffect(() => {
     if (!recipe) {
@@ -61,8 +108,6 @@ const RecipeDetailModal = ({ recipe, user, isOpen, onClose, onEdit, onDelete }: 
     
   }, [desiredServings, recipe]);
 
-  if (!isOpen || !recipe) return null;
-
   const toggleIngredient = (index: number) => {
     const newChecked = new Set(checkedIngredients);
     if (newChecked.has(index)) {
@@ -71,12 +116,6 @@ const RecipeDetailModal = ({ recipe, user, isOpen, onClose, onEdit, onDelete }: 
       newChecked.add(index);
     }
     setCheckedIngredients(newChecked);
-  };
-
-  const handleDelete = () => {
-    onDelete(recipe.id);
-    setShowDeleteConfirm(false);
-    onClose();
   };
 
   const handleDecrementServings = () => {
@@ -119,101 +158,87 @@ const RecipeDetailModal = ({ recipe, user, isOpen, onClose, onEdit, onDelete }: 
     setCheckedInstructions(newChecked);
   };
 
-  const canEditOrDelete = user && recipe && (
-    (user.role === 'Admin' && recipe.visibility === 'public') ||
-    (user.role === 'Editor' && recipe.user_id === user.id)
-  );
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-cream-50 to-rose-50 flex flex-col items-center justify-center">
+        <div className="flex flex-col items-center">
+          <div className="text-8xl font-dancing-script text-amber-900 mb-8">arkooking</div>
+          <div className="w-16 h-16 border-4 border-amber-300 border-t-amber-700 rounded-full animate-spin mb-8"></div>
+          <div className="text-4xl font-dancing-script text-amber-900 text-center">loading recipe...</div>
+        </div>
+      </div>
+    );
+  }
 
-  const handleShare = async () => {
-    const shareUrl = `${window.location.origin}/arkooking/shared/${recipe.id}`;
-    try {
-      await navigator.clipboard.writeText(shareUrl);
-      // You could add a toast notification here if you want
-      alert('Recipe link copied to clipboard!');
-    } catch (err) {
-      console.error('Failed to copy to clipboard:', err);
-      // Fallback for older browsers
-      const textArea = document.createElement('textarea');
-      textArea.value = shareUrl;
-      document.body.appendChild(textArea);
-      textArea.select();
-      document.execCommand('copy');
-      document.body.removeChild(textArea);
-      alert('Recipe link copied to clipboard!');
-    }
-  };
+  if (error || !recipe) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-cream-50 to-rose-50 flex flex-col items-center justify-center p-4">
+        <div className="text-center">
+          <div className="text-6xl mb-4">🍳</div>
+          <h1 className="text-2xl font-bold text-amber-900 mb-4">Recipe Not Found</h1>
+          <p className="text-amber-700 mb-6">{error || 'This recipe is not available or has been removed.'}</p>
+          <button
+            onClick={() => navigate('/')}
+            className="px-6 py-3 bg-amber-600 text-white rounded-xl hover:bg-amber-700 transition-colors"
+          >
+            Go Home
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-end justify-center z-50 p-4">
-      <div className="bg-white rounded-t-3xl max-w-md w-full max-h-[90vh] overflow-hidden animate-slide-up">
-        {/* Header */}
-        <div className="relative">
-          {/* Image */}
-          <div className="h-48 bg-gradient-to-br from-amber-100 to-rose-100 relative">
-            {recipe.images && recipe.images.length > 0 ? (
-              <>
-                <img
-                  src={recipe.images[currentImageIndex]}
-                  alt={recipe.title}
-                  className="w-full h-full object-cover"
-                />
-                {recipe.images.length > 1 && (
-                  <>
-                    <button onClick={handlePrevImage} className="absolute z-10 left-2 top-1/2 -translate-y-1/2 bg-black/30 text-white p-1 rounded-full hover:bg-black/50 transition-colors focus:outline-none"><ChevronLeft className="w-6 h-6" /></button>
-                    <button onClick={handleNextImage} className="absolute z-10 right-2 top-1/2 -translate-y-1/2 bg-black/30 text-white p-1 rounded-full hover:bg-black/50 transition-colors focus:outline-none"><ChevronRight className="w-6 h-6" /></button>
-                    <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-1.5">
-                      {recipe.images.map((_, index) => (
-                        <div key={index} className={`w-2 h-2 rounded-full ${index === currentImageIndex ? 'bg-white' : 'bg-white/50'}`}></div>
-                      ))}
-                    </div>
-                  </>
-                )}
-              </>
-            ) : (
-              <div className="w-full h-full flex items-center justify-center">
-                <div className="text-6xl">🍳</div>
-              </div>
-            )}
-            <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent" />
-          </div>
-
-          {/* Close Button */}
+    <div className="min-h-screen bg-gradient-to-br from-cream-50 to-rose-50">
+      {/* Header */}
+      <div className="bg-white/90 backdrop-blur-sm border-b border-amber-100">
+        <div className="max-w-md mx-auto px-4 py-4">
           <button
-            onClick={onClose}
-            className="absolute bottom-4 right-4 bg-white/90 backdrop-blur-sm rounded-full p-2 hover:bg-white transition-colors"
+            onClick={() => navigate('/')}
+            className="flex items-center gap-2 text-amber-700 hover:text-amber-800 transition-colors"
           >
-            <X className="w-5 h-5 text-gray-700" />
+            <ArrowLeft className="w-5 h-5" />
+            <span>Back to Home</span>
           </button>
+        </div>
+      </div>
 
-          {/* Share Button */}
-          <button
-            onClick={handleShare}
-            className="absolute bottom-4 right-16 bg-white/90 backdrop-blur-sm rounded-full p-2 hover:bg-white transition-colors"
-          >
-            <Share2 className="w-5 h-5 text-amber-700" />
-          </button>
-
-          {/* Action Buttons */}
-          {canEditOrDelete && (
-            <div className="absolute bottom-4 left-4 flex gap-2">
-              <button
-                onClick={() => onEdit(recipe)}
-                className="bg-white/90 backdrop-blur-sm rounded-full p-2 hover:bg-white transition-colors"
-              >
-                <Edit className="w-4 h-4 text-amber-700" />
-              </button>
-              <button
-                onClick={() => setShowDeleteConfirm(true)}
-                className="bg-white/90 backdrop-blur-sm rounded-full p-2 hover:bg-white transition-colors"
-              >
-                <Delete className="w-4 h-4 text-red-600" />
-              </button>
+      <div className="max-w-md mx-auto">
+        {/* Image */}
+        <div className="h-48 bg-gradient-to-br from-amber-100 to-rose-100 relative">
+          {recipe.images && recipe.images.length > 0 ? (
+            <>
+              <img
+                src={recipe.images[currentImageIndex]}
+                alt={recipe.title}
+                className="w-full h-full object-cover"
+              />
+              {recipe.images.length > 1 && (
+                <>
+                  <button onClick={handlePrevImage} className="absolute z-10 left-2 top-1/2 -translate-y-1/2 bg-black/30 text-white p-1 rounded-full hover:bg-black/50 transition-colors focus:outline-none">
+                    <ChevronLeft className="w-6 h-6" />
+                  </button>
+                  <button onClick={handleNextImage} className="absolute z-10 right-2 top-1/2 -translate-y-1/2 bg-black/30 text-white p-1 rounded-full hover:bg-black/50 transition-colors focus:outline-none">
+                    <ChevronRight className="w-6 h-6" />
+                  </button>
+                  <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-1.5">
+                    {recipe.images.map((_, index) => (
+                      <div key={index} className={`w-2 h-2 rounded-full ${index === currentImageIndex ? 'bg-white' : 'bg-white/50'}`}></div>
+                    ))}
+                  </div>
+                </>
+              )}
+            </>
+          ) : (
+            <div className="w-full h-full flex items-center justify-center">
+              <div className="text-6xl">🍳</div>
             </div>
           )}
+          <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent" />
         </div>
 
         {/* Content */}
-        <div className="overflow-y-auto max-h-[calc(90vh-12rem)]">
+        <div className="bg-white">
           <div className="p-6">
             {/* Title and Meta */}
             <h1 className="text-2xl font-bold text-amber-900 mb-2">{recipe.title}</h1>
@@ -221,7 +246,7 @@ const RecipeDetailModal = ({ recipe, user, isOpen, onClose, onEdit, onDelete }: 
             {recipe.user_full_name && (
               <div className="flex items-center gap-2 mb-4 text-amber-800 text-sm">
                 <ChefHat className="w-4 h-4" />
-                <span>{recipe.user_full_name}</span>
+                <span>By {recipe.user_full_name}</span>
               </div>
             )}
             {recipe.link && (
@@ -335,35 +360,9 @@ const RecipeDetailModal = ({ recipe, user, isOpen, onClose, onEdit, onDelete }: 
             </div>
           </div>
         </div>
-
-        {/* Delete Confirmation Modal */}
-        {showDeleteConfirm && (
-          <div className="absolute inset-0 bg-black/50 flex items-center justify-center p-6">
-            <div className="bg-white rounded-2xl p-6 max-w-sm">
-              <h3 className="text-lg font-bold text-gray-900 mb-2">Delete Recipe?</h3>
-              <p className="text-gray-600 mb-4">
-                Are you sure you want to delete "{recipe.title}"? This action cannot be undone.
-              </p>
-              <div className="flex gap-3">
-                <button
-                  onClick={() => setShowDeleteConfirm(false)}
-                  className="flex-1 px-4 py-2 bg-gray-100 text-gray-700 rounded-xl hover:bg-gray-200 transition-colors"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={handleDelete}
-                  className="flex-1 px-4 py-2 bg-red-500 text-white rounded-xl hover:bg-red-600 transition-colors"
-                >
-                  Delete
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
       </div>
     </div>
   );
 };
 
-export default RecipeDetailModal;
+export default SharedRecipe; 
