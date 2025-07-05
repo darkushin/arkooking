@@ -161,14 +161,14 @@ const RecipeDetailModal = ({ recipe, user, isOpen, onClose, onEdit, onDelete }: 
           {/* Close Button */}
           <button
             onClick={onClose}
-            className="absolute top-4 right-4 bg-white/90 backdrop-blur-sm rounded-full p-2 hover:bg-white transition-colors"
+            className="absolute bottom-4 right-4 bg-white/90 backdrop-blur-sm rounded-full p-2 hover:bg-white transition-colors"
           >
             <X className="w-5 h-5 text-gray-700" />
           </button>
 
           {/* Action Buttons */}
           {canEditOrDelete && (
-            <div className="absolute top-4 left-4 flex gap-2">
+            <div className="absolute bottom-4 left-4 flex gap-2">
               <button
                 onClick={() => onEdit(recipe)}
                 className="bg-white/90 backdrop-blur-sm rounded-full p-2 hover:bg-white transition-colors"
