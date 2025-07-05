@@ -87,16 +87,89 @@ const AddRecipeModal = ({ isOpen, onClose, onAdd, userRole, initialTag, isAddMod
   const [extractLoading, setExtractLoading] = useState(false);
   const [extractError, setExtractError] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const scrollContainerRef = useRef<HTMLFormElement>(null);
+  const isClosingRef = useRef(false);
   // DnD-kit setup
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } })
   );
+
+  // Clear scroll position when modal is closed
+  useEffect(() => {
+    if (!isOpen) {
+      // Clear the saved scroll position when modal is closed
+      localStorage.removeItem('add-recipe-scroll');
+      isClosingRef.current = false;
+    }
+  }, [isOpen]);
+
+  // Save scroll position on scroll events (only when modal is open)
+  useEffect(() => {
+    const scrollContainer = scrollContainerRef.current;
+    if (!scrollContainer || !isOpen) return;
+
+    const handleScroll = () => {
+      if (!isClosingRef.current) {
+        const scrollPosition = scrollContainer.scrollTop;
+        localStorage.setItem('add-recipe-scroll', scrollPosition.toString());
+      }
+    };
+
+    scrollContainer.addEventListener('scroll', handleScroll);
+    return () => scrollContainer.removeEventListener('scroll', handleScroll);
+  }, [isOpen]);
+
+  // Handle page visibility changes (tab switching) - only when modal is open
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const handleVisibilityChange = () => {
+      if (document.hidden && scrollContainerRef.current && !isClosingRef.current) {
+        // Save scroll position when tab becomes hidden
+        const scrollPosition = scrollContainerRef.current.scrollTop;
+        localStorage.setItem('add-recipe-scroll', scrollPosition.toString());
+      } else if (!document.hidden && scrollContainerRef.current) {
+        // Restore scroll position when tab becomes visible
+        const savedScrollPosition = localStorage.getItem('add-recipe-scroll');
+        if (savedScrollPosition) {
+          setTimeout(() => {
+            if (scrollContainerRef.current) {
+              scrollContainerRef.current.scrollTop = parseInt(savedScrollPosition);
+            }
+          }, 50);
+        }
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, [isOpen]);
+
+  // Restore scroll position when modal is opened
+  useEffect(() => {
+    if (isOpen && scrollContainerRef.current) {
+      const savedScrollPosition = localStorage.getItem('add-recipe-scroll');
+      if (savedScrollPosition) {
+        // Use setTimeout to ensure the content is rendered before scrolling
+        setTimeout(() => {
+          if (scrollContainerRef.current) {
+            scrollContainerRef.current.scrollTop = parseInt(savedScrollPosition);
+          }
+        }, 100);
+      }
+    }
+  }, [isOpen]);
 
   // Now do the early return
   if (!isOpen) return null;
 
   // Helper setters
   const setField = (field: string, value: any) => setForm({ ...form, [field]: value });
+
+  const handleClose = () => {
+    isClosingRef.current = true;
+    onClose();
+  };
 
   const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;
@@ -249,7 +322,7 @@ const AddRecipeModal = ({ isOpen, onClose, onAdd, userRole, initialTag, isAddMod
         <div className="flex items-center justify-between p-6 border-b border-amber-100">
           <h2 className="text-xl font-bold text-amber-900">Add New Recipe</h2>
           <button
-            onClick={onClose}
+            onClick={handleClose}
             className="p-2 hover:bg-amber-50 rounded-full transition-colors"
           >
             <X className="w-5 h-5 text-amber-700" />
@@ -257,7 +330,7 @@ const AddRecipeModal = ({ isOpen, onClose, onAdd, userRole, initialTag, isAddMod
         </div>
 
         {/* Form */}
-        <form onSubmit={handleSubmit} className="overflow-y-auto max-h-[calc(90vh-5rem)]">
+        <form onSubmit={handleSubmit} className="overflow-y-auto max-h-[calc(90vh-5rem)]" ref={scrollContainerRef}>
           <div className="p-6 space-y-6">
             {/* Image Upload */}
             <div>

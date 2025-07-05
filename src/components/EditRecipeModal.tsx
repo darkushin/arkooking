@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { X, Plus, Camera, Trash2, Loader2 } from 'lucide-react';
 import { Recipe } from '../types/Recipe';
 import { commonTags } from '@/lib/categories';
@@ -61,10 +61,78 @@ const EditRecipeModal = ({ isOpen, onClose, onEdit, recipe: initialRecipe, form,
   const [extractLoading, setExtractLoading] = useState(false);
   const [extractError, setExtractError] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const scrollContainerRef = useRef<HTMLFormElement>(null);
+  const isClosingRef = useRef(false);
   // DnD-kit setup
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } })
   );
+
+  // Clear scroll position when modal is closed
+  useEffect(() => {
+    if (!isOpen && initialRecipe) {
+      // Clear the saved scroll position when modal is closed
+      localStorage.removeItem(`edit-recipe-scroll-${initialRecipe.id}`);
+      isClosingRef.current = false;
+    }
+  }, [isOpen, initialRecipe]);
+
+  // Save scroll position on scroll events (only when modal is open)
+  useEffect(() => {
+    const scrollContainer = scrollContainerRef.current;
+    if (!scrollContainer || !initialRecipe || !isOpen) return;
+
+    const handleScroll = () => {
+      if (!isClosingRef.current) {
+        const scrollPosition = scrollContainer.scrollTop;
+        localStorage.setItem(`edit-recipe-scroll-${initialRecipe.id}`, scrollPosition.toString());
+      }
+    };
+
+    scrollContainer.addEventListener('scroll', handleScroll);
+    return () => scrollContainer.removeEventListener('scroll', handleScroll);
+  }, [initialRecipe, isOpen]);
+
+  // Handle page visibility changes (tab switching) - only when modal is open
+  useEffect(() => {
+    if (!isOpen || !initialRecipe) return;
+
+    const handleVisibilityChange = () => {
+      if (document.hidden && scrollContainerRef.current && !isClosingRef.current) {
+        // Save scroll position when tab becomes hidden
+        const scrollPosition = scrollContainerRef.current.scrollTop;
+        localStorage.setItem(`edit-recipe-scroll-${initialRecipe.id}`, scrollPosition.toString());
+      } else if (!document.hidden && scrollContainerRef.current) {
+        // Restore scroll position when tab becomes visible
+        const savedScrollPosition = localStorage.getItem(`edit-recipe-scroll-${initialRecipe.id}`);
+        if (savedScrollPosition) {
+          setTimeout(() => {
+            if (scrollContainerRef.current) {
+              scrollContainerRef.current.scrollTop = parseInt(savedScrollPosition);
+            }
+          }, 50);
+        }
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, [initialRecipe, isOpen]);
+
+  // Restore scroll position when modal is opened
+  useEffect(() => {
+    if (isOpen && initialRecipe && scrollContainerRef.current) {
+      const savedScrollPosition = localStorage.getItem(`edit-recipe-scroll-${initialRecipe.id}`);
+      if (savedScrollPosition) {
+        // Use setTimeout to ensure the content is rendered before scrolling
+        setTimeout(() => {
+          if (scrollContainerRef.current) {
+            scrollContainerRef.current.scrollTop = parseInt(savedScrollPosition);
+          }
+        }, 100);
+      }
+    }
+  }, [isOpen, initialRecipe]);
 
   // Now do the early return
   if (!isOpen || !initialRecipe || !form) return null;
@@ -75,6 +143,11 @@ const EditRecipeModal = ({ isOpen, onClose, onEdit, recipe: initialRecipe, form,
       ...prevForm,
       [field]: typeof value === 'function' ? value(prevForm[field]) : value,
     }));
+  };
+
+  const handleClose = () => {
+    isClosingRef.current = true;
+    onClose();
   };
 
   const handleSetPreviewImage = (indexToMakeFirst: number) => {
@@ -241,7 +314,7 @@ const EditRecipeModal = ({ isOpen, onClose, onEdit, recipe: initialRecipe, form,
         <div className="flex items-center justify-between p-6 border-b border-amber-100">
           <h2 className="text-xl font-bold text-amber-900">Edit Recipe</h2>
           <button
-            onClick={onClose}
+            onClick={handleClose}
             className="p-2 hover:bg-amber-50 rounded-full transition-colors"
           >
             <X className="w-5 h-5 text-amber-700" />
@@ -249,7 +322,7 @@ const EditRecipeModal = ({ isOpen, onClose, onEdit, recipe: initialRecipe, form,
         </div>
 
         {/* Form */}
-        <form onSubmit={handleSubmit} className="overflow-y-auto max-h-[calc(90vh-5rem)]">
+        <form onSubmit={handleSubmit} className="overflow-y-auto max-h-[calc(90vh-5rem)]" ref={scrollContainerRef}>
           <div className="p-6 space-y-6">
             {/* Image Upload */}
             <div>

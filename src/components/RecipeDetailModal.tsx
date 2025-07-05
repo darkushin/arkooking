@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { X, Clock, Users, Edit, Delete, Check, Minus, Plus, ChevronLeft, ChevronRight, ChefHat, Link as LinkIcon, Share2 } from 'lucide-react';
 import { Recipe } from '../types/Recipe';
 import { scaleIngredient } from '@/lib/recipe-utils';
@@ -20,6 +20,8 @@ const RecipeDetailModal = ({ recipe, user, isOpen, onClose, onEdit, onDelete }: 
   const [adjustedIngredients, setAdjustedIngredients] = useState<string[]>([]);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [checkedInstructions, setCheckedInstructions] = useState<Set<number>>(new Set());
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const isClosingRef = useRef(false);
 
   useEffect(() => {
     if (recipe) {
@@ -61,6 +63,72 @@ const RecipeDetailModal = ({ recipe, user, isOpen, onClose, onEdit, onDelete }: 
     
   }, [desiredServings, recipe]);
 
+  // Clear scroll position when modal is closed
+  useEffect(() => {
+    if (!isOpen && recipe) {
+      // Clear the saved scroll position when modal is closed
+      localStorage.removeItem(`recipe-scroll-${recipe.id}`);
+      isClosingRef.current = false;
+    }
+  }, [isOpen, recipe]);
+
+  // Save scroll position on scroll events (only when modal is open)
+  useEffect(() => {
+    const scrollContainer = scrollContainerRef.current;
+    if (!scrollContainer || !recipe || !isOpen) return;
+
+    const handleScroll = () => {
+      if (!isClosingRef.current) {
+        const scrollPosition = scrollContainer.scrollTop;
+        localStorage.setItem(`recipe-scroll-${recipe.id}`, scrollPosition.toString());
+      }
+    };
+
+    scrollContainer.addEventListener('scroll', handleScroll);
+    return () => scrollContainer.removeEventListener('scroll', handleScroll);
+  }, [recipe, isOpen]);
+
+  // Handle page visibility changes (tab switching) - only when modal is open
+  useEffect(() => {
+    if (!isOpen || !recipe) return;
+
+    const handleVisibilityChange = () => {
+      if (document.hidden && scrollContainerRef.current && !isClosingRef.current) {
+        // Save scroll position when tab becomes hidden
+        const scrollPosition = scrollContainerRef.current.scrollTop;
+        localStorage.setItem(`recipe-scroll-${recipe.id}`, scrollPosition.toString());
+      } else if (!document.hidden && scrollContainerRef.current) {
+        // Restore scroll position when tab becomes visible
+        const savedScrollPosition = localStorage.getItem(`recipe-scroll-${recipe.id}`);
+        if (savedScrollPosition) {
+          setTimeout(() => {
+            if (scrollContainerRef.current) {
+              scrollContainerRef.current.scrollTop = parseInt(savedScrollPosition);
+            }
+          }, 50);
+        }
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, [recipe, isOpen]);
+
+  // Restore scroll position when modal is opened
+  useEffect(() => {
+    if (isOpen && recipe && scrollContainerRef.current) {
+      const savedScrollPosition = localStorage.getItem(`recipe-scroll-${recipe.id}`);
+      if (savedScrollPosition) {
+        // Use setTimeout to ensure the content is rendered before scrolling
+        setTimeout(() => {
+          if (scrollContainerRef.current) {
+            scrollContainerRef.current.scrollTop = parseInt(savedScrollPosition);
+          }
+        }, 100);
+      }
+    }
+  }, [isOpen, recipe]);
+
   if (!isOpen || !recipe) return null;
 
   const toggleIngredient = (index: number) => {
@@ -73,10 +141,15 @@ const RecipeDetailModal = ({ recipe, user, isOpen, onClose, onEdit, onDelete }: 
     setCheckedIngredients(newChecked);
   };
 
+  const handleClose = () => {
+    isClosingRef.current = true;
+    onClose();
+  };
+
   const handleDelete = () => {
     onDelete(recipe.id);
     setShowDeleteConfirm(false);
-    onClose();
+    handleClose();
   };
 
   const handleDecrementServings = () => {
@@ -179,7 +252,7 @@ const RecipeDetailModal = ({ recipe, user, isOpen, onClose, onEdit, onDelete }: 
 
           {/* Close Button */}
           <button
-            onClick={onClose}
+            onClick={handleClose}
             className="absolute bottom-4 right-4 bg-white/90 backdrop-blur-sm rounded-full p-2 hover:bg-white transition-colors"
           >
             <X className="w-5 h-5 text-gray-700" />
@@ -213,7 +286,7 @@ const RecipeDetailModal = ({ recipe, user, isOpen, onClose, onEdit, onDelete }: 
         </div>
 
         {/* Content */}
-        <div className="overflow-y-auto max-h-[calc(90vh-12rem)]">
+        <div className="overflow-y-auto max-h-[calc(90vh-12rem)]" ref={scrollContainerRef}>
           <div className="p-6">
             {/* Title and Meta */}
             <h1 className="text-2xl font-bold text-amber-900 mb-2">{recipe.title}</h1>
