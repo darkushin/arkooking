@@ -81,12 +81,18 @@ function SortableIngredient({ id, index, ingredient, updateIngredient, removeIng
 }
 
 const AddRecipeModal = ({ isOpen, onClose, onAdd, userRole, initialTag, isAddModalOpen, form, setForm }: AddRecipeModalProps) => {
+  // All hooks at the top!
   const [tagError, setTagError] = useState('');
   const [autoExtract, setAutoExtract] = useState(false);
   const [extractLoading, setExtractLoading] = useState(false);
   const [extractError, setExtractError] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
+  // DnD-kit setup
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } })
+  );
 
+  // Now do the early return
   if (!isOpen) return null;
 
   // Helper setters
@@ -226,11 +232,6 @@ const AddRecipeModal = ({ isOpen, onClose, onAdd, userRole, initialTag, isAddMod
     };
     onAdd(recipe);
   };
-
-  // DnD-kit setup
-  const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 5 } })
-  );
 
   const handleDragEnd = (event) => {
     const { active, over } = event;
