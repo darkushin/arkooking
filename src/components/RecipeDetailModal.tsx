@@ -23,14 +23,53 @@ const RecipeDetailModal = ({ recipe, user, isOpen, onClose, onEdit, onDelete }: 
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const isClosingRef = useRef(false);
 
+  // Restore checked state when modal is opened or recipe changes
+  useEffect(() => {
+    if (isOpen && recipe) {
+      // Restore checked ingredients
+      const savedCheckedIngredients = localStorage.getItem(`recipe-checked-ingredients-${recipe.id}`);
+      if (savedCheckedIngredients) {
+        try {
+          setCheckedIngredients(new Set(JSON.parse(savedCheckedIngredients)));
+        } catch {
+          setCheckedIngredients(new Set());
+        }
+      } else {
+        setCheckedIngredients(new Set());
+      }
+      // Restore checked instructions
+      const savedCheckedInstructions = localStorage.getItem(`recipe-checked-instructions-${recipe.id}`);
+      if (savedCheckedInstructions) {
+        try {
+          setCheckedInstructions(new Set(JSON.parse(savedCheckedInstructions)));
+        } catch {
+          setCheckedInstructions(new Set());
+        }
+      } else {
+        setCheckedInstructions(new Set());
+      }
+    }
+  }, [isOpen, recipe]);
+
+  // Persist checkedIngredients to localStorage
   useEffect(() => {
     if (recipe) {
-      setDesiredServings(String(recipe.servings));
-      setCheckedIngredients(new Set());
-      setCurrentImageIndex(0);
-      setCheckedInstructions(new Set());
+      localStorage.setItem(
+        `recipe-checked-ingredients-${recipe.id}`,
+        JSON.stringify(Array.from(checkedIngredients))
+      );
     }
-  }, [recipe]);
+  }, [checkedIngredients, recipe]);
+
+  // Persist checkedInstructions to localStorage
+  useEffect(() => {
+    if (recipe) {
+      localStorage.setItem(
+        `recipe-checked-instructions-${recipe.id}`,
+        JSON.stringify(Array.from(checkedInstructions))
+      );
+    }
+  }, [checkedInstructions, recipe]);
 
   useEffect(() => {
     if (!recipe) {
@@ -126,6 +165,14 @@ const RecipeDetailModal = ({ recipe, user, isOpen, onClose, onEdit, onDelete }: 
           }
         }, 100);
       }
+    }
+  }, [isOpen, recipe]);
+
+  // Clear checked state when modal is closed
+  useEffect(() => {
+    if (!isOpen && recipe) {
+      localStorage.removeItem(`recipe-checked-ingredients-${recipe.id}`);
+      localStorage.removeItem(`recipe-checked-instructions-${recipe.id}`);
     }
   }, [isOpen, recipe]);
 
