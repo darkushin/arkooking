@@ -71,6 +71,13 @@ const RecipeDetailModal = ({ recipe, user, isOpen, onClose, onEdit, onDelete }: 
     }
   }, [checkedInstructions, recipe]);
 
+  // Always set desiredServings to recipe.servings when modal opens with a recipe
+  useEffect(() => {
+    if (isOpen && recipe) {
+      setDesiredServings(String(recipe.servings));
+    }
+  }, [isOpen, recipe]);
+
   useEffect(() => {
     if (!recipe) {
       setAdjustedIngredients([]);

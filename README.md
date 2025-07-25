@@ -181,3 +181,129 @@ To run from source:
 # Go >= 1.22
 go run . help
 ```
+
+
+## Building a new supabase
+1. You need to create new tables with the required fields. Pay attention to each field type.
+2. Add the RLS policies to each table.
+  - For the 'recipes' table, run the following SQL query:
+  ```
+  CREATE OR REPLACE FUNCTION public.get_user_role(user_id uuid)
+  RETURNS text
+  LANGUAGE plpgsql
+  SECURITY DEFINER
+  AS $function$
+  DECLARE
+      user_role_value TEXT;
+  BEGIN
+      SELECT role::TEXT INTO user_role_value
+      FROM public.profiles
+      WHERE id = user_id;
+
+      RETURN user_role_value;
+  END;
+  $function$;
+  ```
+
+  And then the following query to add all policies:
+  ```
+  -- Enable RLS if not already enabled
+  ALTER TABLE recipes ENABLE ROW LEVEL SECURITY;
+
+  -- 1️⃣ Editors and Admins can create recipes
+  CREATE POLICY "Editors and Admins can create recipes"
+  ON recipes
+  FOR INSERT
+  TO PUBLIC
+  WITH CHECK (
+    (auth.uid() IS NOT NULL)
+    AND (get_user_role(auth.uid()) = ANY (ARRAY['Editor'::text, 'Admin'::text]))
+  );
+
+  -- 2️⃣ Users can create their own recipes
+  CREATE POLICY "Users can create their own recipes"
+  ON recipes
+  FOR INSERT
+  TO PUBLIC
+  WITH CHECK (
+    auth.uid() = user_id
+  );
+
+  -- 3️⃣ Users can delete their own recipes
+  CREATE POLICY "Users can delete their own recipes"
+  ON recipes
+  FOR DELETE
+  TO PUBLIC
+  USING (
+    auth.uid() = user_id
+  );
+
+  -- 4️⃣ Users can delete their own recipes or admins can delete any
+  CREATE POLICY "Users can delete their own recipes or admins can delete any"
+  ON recipes
+  FOR DELETE
+  TO PUBLIC
+  USING (
+    (
+      (auth.uid() IS NOT NULL)
+      AND (get_user_role(auth.uid()) = 'Editor'::text)
+      AND (user_id = auth.uid())
+    )
+    OR (
+      (auth.uid() IS NOT NULL)
+      AND (get_user_role(auth.uid()) = 'Admin'::text)
+      AND (visibility = 'public'::text)
+    )
+  );
+
+  -- 5️⃣ Users can see public or their own private recipes
+  CREATE POLICY "Users can see public or their own private recipes"
+  ON recipes
+  FOR SELECT
+  TO PUBLIC
+  USING (
+    (visibility = 'public'::text)
+    OR (
+      (auth.uid() IS NOT NULL)
+      AND (user_id = auth.uid())
+    )
+  );
+
+  -- 6️⃣ Users can update their own recipes
+  CREATE POLICY "Users can update their own recipes"
+  ON recipes
+  FOR UPDATE
+  TO PUBLIC
+  USING (
+    auth.uid() = user_id
+  );
+
+  -- 7️⃣ Users can update their own recipes or admins can update any
+  CREATE POLICY "Users can update their own recipes or admins can update any"
+  ON recipes
+  FOR UPDATE
+  TO PUBLIC
+  USING (
+    (
+      (auth.uid() IS NOT NULL)
+      AND (get_user_role(auth.uid()) = 'Editor'::text)
+      AND (user_id = auth.uid())
+    )
+    OR (
+      (auth.uid() IS NOT NULL)
+      AND (get_user_role(auth.uid()) = 'Admin'::text)
+      AND (visibility = 'public'::text)
+    )
+  );
+
+  -- 8️⃣ Users can view their own recipes
+  CREATE POLICY "Users can view their own recipes"
+  ON recipes
+  FOR SELECT
+  TO PUBLIC
+  USING (
+    auth.uid() = user_id
+  );
+  ```
+
+2. Add the required Foreign Key Relations between the required table keys.
