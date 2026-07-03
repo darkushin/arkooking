@@ -4,6 +4,7 @@ import { Recipe } from '../types/Recipe';
 import { commonTags } from '@/lib/categories';
 import { Switch } from '@/components/ui/switch';
 import { SUPABASE_ANON_KEY, SUPABASE_FUNCTIONS_URL } from '@/integrations/supabase/access';
+import { fileToCompressedDataUrl } from '@/lib/image-utils';
 import { DndContext, closestCenter, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
 import { arrayMove, SortableContext, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
@@ -161,26 +162,16 @@ const EditRecipeModal = ({ isOpen, onClose, onEdit, recipe: initialRecipe, form,
     });
   };
 
-  const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;
-    if (files) {
-      const newImages: string[] = [];
-      let filesToProcess = files.length;
-
-      for (let i = 0; i < files.length; i++) {
-        const file = files[i];
-        const reader = new FileReader();
-        reader.onload = (e) => {
-          if (e.target?.result) {
-            newImages.push(e.target.result as string);
-          }
-          filesToProcess--;
-          if (filesToProcess === 0) {
-            setField('images', prev => [...prev, ...newImages]);
-          }
-        };
-        reader.readAsDataURL(file);
-      }
+    if (!files || files.length === 0) return;
+    try {
+      const newImages = await Promise.all(
+        Array.from(files).map(file => fileToCompressedDataUrl(file))
+      );
+      setField('images', prev => [...prev, ...newImages]);
+    } catch (err) {
+      console.error('Failed to process images:', err);
     }
   };
 

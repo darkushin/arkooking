@@ -252,7 +252,7 @@ const RecipeDetailModal = ({ recipe, user, isOpen, onClose, onEdit, onDelete }: 
   );
 
   const handleShare = async () => {
-    const shareUrl = `${window.location.origin}/arkooking/shared/${recipe.id}`;
+    const shareUrl = `${window.location.origin}${import.meta.env.BASE_URL}shared/${recipe.id}`;
     try {
       await navigator.clipboard.writeText(shareUrl);
       // You could add a toast notification here if you want

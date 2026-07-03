@@ -45,12 +45,29 @@ serve(async (req) => {
     }
 
     // Fetch and extract visible text content from the recipe page
+    // Cap the text sent to the model: body.textContent of modern recipe pages can be
+    // hundreds of KB (scripts, whitespace), which blows past model/rate limits.
+    const MAX_TEXT_LENGTH = 40000;
     let pageText = "";
     try {
-      const html = await fetch(link).then(res => res.text());
+      const res = await fetch(link, {
+        headers: {
+          "User-Agent":
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36"
+        }
+      });
+      if (!res.ok) throw new Error(`Page returned status ${res.status}`);
+      const html = await res.text();
       const doc = new DOMParser().parseFromString(html, "text/html");
-      pageText = doc?.body?.textContent || "";
+      // Drop elements whose text is never recipe content
+      doc?.querySelectorAll("script, style, noscript, iframe, svg, nav, header, footer")
+        .forEach((el) => (el as Element).remove());
+      pageText = (doc?.body?.textContent || "").replace(/\s+/g, " ").trim();
       console.log(`Fetched page text for link (${link}), length:`, pageText.length);
+      if (pageText.length > MAX_TEXT_LENGTH) {
+        console.log(`Truncating page text from ${pageText.length} to ${MAX_TEXT_LENGTH} chars`);
+        pageText = pageText.slice(0, MAX_TEXT_LENGTH);
+      }
     } catch (e) {
       console.error("Failed to fetch or parse the recipe page:", link, e);
       return new Response(JSON.stringify({
@@ -92,7 +109,9 @@ ${pageText}`;
             { role: "system", content: "You are a data extraction assistant that outputs only JSON." },
             { role: "user", content: prompt }
           ],
-          temperature: 0.2
+          temperature: 0.2,
+          max_tokens: 4096,
+          response_format: { type: "json_object" }
         })
       });
       data = await openaiRes.json();

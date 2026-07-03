@@ -37,8 +37,9 @@ const Auth = () => {
     setLoading(true);
     setError('');
 
-    const redirectUrl = `${window.location.origin}/`;
-    
+    // BASE_URL includes the GitHub Pages sub-path (/arkooking/); origin alone lands outside the app
+    const redirectUrl = `${window.location.origin}${import.meta.env.BASE_URL}`;
+
     const { error } = await supabase.auth.signUp({
       email,
       password,
@@ -83,7 +84,7 @@ const Auth = () => {
     setError('');
     setMessage('');
     
-    const redirectUrl = `${window.location.origin}/update-password`;
+    const redirectUrl = `${window.location.origin}${import.meta.env.BASE_URL}update-password`;
 
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
       redirectTo: redirectUrl,

@@ -48,10 +48,16 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 
   useEffect(() => {
     const getSessionAndProfile = async () => {
-      setLoading(true);
       const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-      
+      setSession(session);
+
       if (session?.user) {
+        // Unblock the UI right away with a default role; getSession reads from
+        // local storage, so this renders without waiting on any network call.
+        // The profile query below only upgrades the role once it arrives.
+        setUser({ ...session.user, role: 'Viewer' });
+        setLoading(false);
+
         const { data: profileData, error: profileError } = await supabase
           .from('profiles')
           .select('role')
@@ -61,15 +67,12 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         if (profileData) {
           setUser({ ...session.user, role: (profileData as any).role as UserRole });
         } else {
-          // Fallback or handle error if profile not found
-          setUser({ ...session.user, role: 'Viewer' });
           console.error('Profile not found:', profileError?.message);
         }
       } else {
         setUser(null);
+        setLoading(false);
       }
-      setSession(session);
-      setLoading(false);
     };
 
     getSessionAndProfile();
@@ -77,7 +80,8 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, newSession) => {
         if (event === 'SIGNED_IN') {
-          getSessionAndProfile();
+          // Defer: awaiting Supabase calls inside onAuthStateChange deadlocks the auth lock
+          setTimeout(() => getSessionAndProfile(), 0);
         } else if (event === 'SIGNED_OUT') {
           setUser(null);
           setSession(null);
