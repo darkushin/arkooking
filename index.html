@@ -2,7 +2,18 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+
+    <!-- Installable web app (iOS / Android Home Screen) -->
+    <link rel="manifest" href="/arkooking/manifest.webmanifest" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="arkooking" />
+    <meta name="application-name" content="arkooking" />
+    <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#020817" media="(prefers-color-scheme: dark)" />
+    <link rel="apple-touch-icon" href="/arkooking/apple-touch-icon.png" />
     <title>arkooking</title>
     <meta name="description" content="A place for your recipes" />
     <meta name="author" content="arkooking" />
@@ -21,26 +32,11 @@
       href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@400..700&display=swap"
       rel="stylesheet"
     />
-    <script type="text/javascript">
-      // SPA routing for GitHub Pages: restore the path that 404.html encoded into
-      // the query string, before the app (and React Router) loads.
-      // Source: https://github.com/rafgraph/spa-github-pages
-      (function(l) {
-        if (l.search[1] === '/') {
-          var decoded = l.search.slice(1).split('&').map(function(s) {
-            return s.replace(/~and~/g, '&');
-          }).join('?');
-          window.history.replaceState(null, null,
-            l.pathname.slice(0, -1) + decoded + l.hash
-          );
-        }
-      }(window.location));
-    </script>
-    <script type="module" crossorigin src="/arkooking/assets/index-mMzfpgsQ.js"></script>
-    <link rel="stylesheet" crossorigin href="/arkooking/assets/index-1QRZeS7m.css">
+    <script type="module" crossorigin src="/arkooking/assets/index-CYi4Wb9H.js"></script>
+    <link rel="stylesheet" crossorigin href="/arkooking/assets/index-CyFMUkQ0.css">
   </head>
 
   <body>
-    <div id="root"></div>
+    <div id="root"></div>
   </body>
 </html>
