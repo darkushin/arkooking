@@ -10,7 +10,9 @@ export const useRecipes = () => {
   const { user } = useAuth();
   const { toast } = useToast();
 
-  // Fetch recipes from database
+  // Fetch recipes from database in two phases: the text fields first so the
+  // list renders immediately, then the images (base64 blobs that dominate the
+  // payload size) merged in when they arrive.
   const fetchRecipes = async () => {
     if (!user) {
       setRecipes([]);
@@ -21,24 +23,24 @@ export const useRecipes = () => {
     try {
       const { data, error } = await supabase
         .from('recipes')
-        .select('*, profiles(full_name)')
+        .select('id, user_id, title, description, cook_time, prep_time, servings, tags, ingredients, instructions, visibility, link, created_at, profiles(full_name)')
         .order('created_at', { ascending: false });
 
       if (error) throw error;
 
       // Transform database format to Recipe type
-      const transformedRecipes: Recipe[] = data.map(recipe => ({
+      const transformedRecipes: Recipe[] = (data as any[]).map(recipe => ({
         id: recipe.id,
         title: recipe.title,
         description: recipe.description || '',
-        images: (recipe as any).images || [],
+        images: [],
         cookTime: recipe.cook_time,
         prepTime: recipe.prep_time,
         servings: recipe.servings,
         tags: recipe.tags || [],
         ingredients: recipe.ingredients || [],
         instructions: recipe.instructions || [],
-        visibility: (recipe as any).visibility || 'public',
+        visibility: recipe.visibility || 'public',
         user_id: recipe.user_id,
         user_full_name: recipe.profiles?.full_name || '',
         link: recipe.link || '',
@@ -52,8 +54,31 @@ export const useRecipes = () => {
         description: "Failed to load recipes. Please try again.",
         variant: "destructive",
       });
+      return;
     } finally {
       setLoading(false);
+    }
+
+    // Phase 2: images only. A failure here shouldn't hide the list that is
+    // already on screen, so it just logs.
+    try {
+      const { data: imageRows, error: imgError } = await supabase
+        .from('recipes')
+        .select('id, images');
+
+      if (imgError) throw imgError;
+
+      const imagesById = new Map(
+        (imageRows as any[]).map(row => [row.id, row.images || []])
+      );
+      setRecipes(prev =>
+        prev.map(recipe => ({
+          ...recipe,
+          images: imagesById.get(recipe.id) ?? recipe.images,
+        }))
+      );
+    } catch (error) {
+      console.error('Error fetching recipe images:', error);
     }
   };
 
@@ -195,9 +220,11 @@ export const useRecipes = () => {
     }
   };
 
+  // Key on the user id, not the object: useAuth replaces the user object when
+  // the profile role loads, which must not trigger a second full download
   useEffect(() => {
     fetchRecipes();
-  }, [user]);
+  }, [user?.id]);
 
   return {
     recipes,

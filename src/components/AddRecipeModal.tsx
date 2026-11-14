@@ -1,10 +1,11 @@
-import { useState, useRef, useEffect, useRef as useReactRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { X, Plus, Camera, Trash2, Loader2 } from 'lucide-react';
 import { Recipe } from '../types/Recipe';
 import { commonTags } from '@/lib/categories';
 import { Switch } from '@/components/ui/switch';
 import { UserRole } from '@/hooks/useAuth';
 import { SUPABASE_ANON_KEY, SUPABASE_FUNCTIONS_URL } from '@/integrations/supabase/access';
+import { fileToCompressedDataUrl } from '@/lib/image-utils';
 import { DndContext, closestCenter, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
 import { arrayMove, SortableContext, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
@@ -171,26 +172,16 @@ const AddRecipeModal = ({ isOpen, onClose, onAdd, userRole, initialTag, isAddMod
     onClose();
   };
 
-  const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;
-    if (files) {
-      const newImages: string[] = [];
-      let filesToProcess = files.length;
-
-      for (let i = 0; i < files.length; i++) {
-        const file = files[i];
-        const reader = new FileReader();
-        reader.onload = (e) => {
-          if (e.target?.result) {
-            newImages.push(e.target.result as string);
-          }
-          filesToProcess--;
-          if (filesToProcess === 0) {
-            setField('images', [...form.images, ...newImages]);
-          }
-        };
-        reader.readAsDataURL(file);
-      }
+    if (!files || files.length === 0) return;
+    try {
+      const newImages = await Promise.all(
+        Array.from(files).map(file => fileToCompressedDataUrl(file))
+      );
+      setField('images', [...form.images, ...newImages]);
+    } catch (err) {
+      console.error('Failed to process images:', err);
     }
   };
 
@@ -262,7 +253,8 @@ const AddRecipeModal = ({ isOpen, onClose, onAdd, userRole, initialTag, isAddMod
         ...form,
         title: data.title || '',
         description: data.description || '',
-        images: data.images || [],
+        // The extractor doesn't return images; keep any photos the user already added
+        images: Array.isArray(data.images) && data.images.length > 0 ? data.images : form.images,
         cookTime: Number(data.cookTime) || 0,
         prepTime: Number(data.prepTime) || 0,
         servings: Number(data.servings) || 0,

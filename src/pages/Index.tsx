@@ -82,7 +82,6 @@ const Index = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [addRecipeForm, setAddRecipeForm] = useState(() => getInitialFormState(null, null));
   const [editRecipeForm, setEditRecipeForm] = useState(null);
-  const [showLoading, setShowLoading] = useState(true);
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -130,10 +129,16 @@ const Index = () => {
     }
   }, [isEditModalOpen, selectedRecipe]);
 
+  // Keep the open detail modal in sync with the recipe list, e.g. when
+  // images finish loading after the initial text-only fetch
   useEffect(() => {
-    const timer = setTimeout(() => setShowLoading(false), 10000);
-    return () => clearTimeout(timer);
-  }, []);
+    if (selectedRecipe) {
+      const fresh = recipes.find(r => r.id === selectedRecipe.id);
+      if (fresh && fresh !== selectedRecipe) {
+        setSelectedRecipe(fresh);
+      }
+    }
+  }, [recipes, selectedRecipe]);
 
   const handleSignOut = async () => {
     if (isGuest) {
@@ -212,7 +217,7 @@ const Index = () => {
     setIsDetailModalOpen(false);
   };
 
-  if ((authLoading || recipesLoading || showLoading)) {
+  if (authLoading || recipesLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-cream-50 to-rose-50 flex flex-col items-center justify-center">
         <div className="flex flex-col items-center">
